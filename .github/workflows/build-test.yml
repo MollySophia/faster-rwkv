@@ -15,6 +15,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        # The dependency 'networkx' of ChatRWKV requires Python>=3.9
+        python-version: '3.9' 
 
     - name: Install Ninja
       run: |
@@ -147,7 +151,7 @@ jobs:
     - uses: "marvinpinto/action-automatic-releases@latest"
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
       with:
-        repo_token: "${{ secrets.GH_TOKEN }}"
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
         automatic_release_tag: "latest"
         prerelease: true
         title: "Development Build"
@@ -161,7 +165,7 @@ jobs:
     - uses: "marvinpinto/action-automatic-releases@latest"
       if: ${{ github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') }}
       with:
-        repo_token: "${{ secrets.GH_TOKEN }}"
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
         prerelease: false
         files: |
           build/export_ncnn
@@ -215,48 +219,48 @@ jobs:
         name: rwkv2onnx-wheels
         path: ./wheelhouse/*.whl
 
-  publish-rwkv2onnx-to-pypi:
-    name: Publish rwkv2onnx Python 🐍 distribution 📦 to PyPI
-    if: ${{ github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') }}
-    needs:
-    - build-rwkv2onnx-wheels
-    runs-on: ubuntu-latest
+  # publish-rwkv2onnx-to-pypi:
+  #   name: Publish rwkv2onnx Python 🐍 distribution 📦 to PyPI
+  #   if: ${{ github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') }}
+  #   needs:
+  #   - build-rwkv2onnx-wheels
+  #   runs-on: ubuntu-latest
 
-    environment:
-      name: pypi
-      url: https://pypi.org/p/rwkv2onnx
-    permissions:
-      id-token: write  # IMPORTANT: mandatory for trusted publishing
+  #   environment:
+  #     name: pypi
+  #     url: https://pypi.org/p/rwkv2onnx
+  #   permissions:
+  #     id-token: write  # IMPORTANT: mandatory for trusted publishing
 
-    steps:
-    - name: Download all the dists
-      uses: actions/download-artifact@v3
-      with:
-        name: rwkv2onnx-wheels
-        path: dist/
+  #   steps:
+  #   - name: Download all the dists
+  #     uses: actions/download-artifact@v3
+  #     with:
+  #       name: rwkv2onnx-wheels
+  #       path: dist/
           
-    - name: Publish distribution 📦 to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
+  #   - name: Publish distribution 📦 to PyPI
+  #     uses: pypa/gh-action-pypi-publish@release/v1
 
-  publish-fasterrwkv-to-pypi:
-    name: Publish fasterrwkv Python 🐍 distribution 📦 to PyPI
-    if: ${{ github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') }}
-    needs:
-    - build-and-test
-    runs-on: ubuntu-latest
+  # publish-fasterrwkv-to-pypi:
+  #   name: Publish fasterrwkv Python 🐍 distribution 📦 to PyPI
+  #   if: ${{ github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') }}
+  #   needs:
+  #   - build-and-test
+  #   runs-on: ubuntu-latest
 
-    environment:
-      name: pypi
-      url: https://pypi.org/p/fasterrwkv
-    permissions:
-      id-token: write  # IMPORTANT: mandatory for trusted publishing
+  #   environment:
+  #     name: pypi
+  #     url: https://pypi.org/p/fasterrwkv
+  #   permissions:
+  #     id-token: write  # IMPORTANT: mandatory for trusted publishing
 
-    steps:
-    - name: Download all the dists
-      uses: actions/download-artifact@v3
-      with:
-        name: fasterrwkv-wheels
-        path: dist/
+  #   steps:
+  #   - name: Download all the dists
+  #     uses: actions/download-artifact@v3
+  #     with:
+  #       name: fasterrwkv-wheels
+  #       path: dist/
           
-    - name: Publish distribution 📦 to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
+  #   - name: Publish distribution 📦 to PyPI
+  #     uses: pypa/gh-action-pypi-publish@release/v1
