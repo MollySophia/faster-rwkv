@@ -221,6 +221,8 @@ endif()
 add_library(faster_rwkv INTERFACE)
 target_link_libraries(faster_rwkv INTERFACE "$<LINK_LIBRARY:WHOLE_ARCHIVE,faster_rwkv_internal>")
 
+add_library(faster_rwkvd SHARED "$<TARGET_OBJECTS:faster_rwkv_internal>")
+
 add_executable(export_ncnn export_ncnn.cpp)
 target_link_libraries(export_ncnn faster_rwkv)
 
