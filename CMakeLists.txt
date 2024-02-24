@@ -29,6 +29,7 @@ else()
 endif()
 option(FR_ENABLE_TESTS "Enable the tests of faster-rwkv" OFF)
 option(FR_MSVC_STATIC_RUNTIME "" OFF)
+option(FR_BUILD_SHARED_LIB "Build faster-rwkv as a shared library" OFF)
 
 if(NOT DEFINED CMAKE_POSITION_INDEPENDENT_CODE)
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -221,7 +222,9 @@ endif()
 add_library(faster_rwkv INTERFACE)
 target_link_libraries(faster_rwkv INTERFACE "$<LINK_LIBRARY:WHOLE_ARCHIVE,faster_rwkv_internal>")
 
-add_library(faster_rwkvd SHARED "$<TARGET_OBJECTS:faster_rwkv_internal>")
+if (FR_BUILD_SHARED_LIB)
+    add_library(faster_rwkvd SHARED "$<TARGET_OBJECTS:faster_rwkv_internal>")
+endif()
 
 add_executable(export_ncnn export_ncnn.cpp)
 target_link_libraries(export_ncnn faster_rwkv)
