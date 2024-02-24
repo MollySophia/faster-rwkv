@@ -219,6 +219,45 @@ jobs:
         name: rwkv2onnx-wheels
         path: ./wheelhouse/*.whl
 
+  setup:
+    permissions:
+      contents: none
+    runs-on: ubuntu-latest
+    outputs:
+      VERSION: ${{ steps.get_version.outputs.VERSION }}
+    steps:
+    - name: get-version
+      id: get_version
+      run: echo "VERSION=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
+
+  ubuntu-2204:
+    needs: [setup]
+    runs-on: ubuntu-22.04
+    env:
+      PACKAGENAME: faster-rwkv-${{ needs.setup.outputs.VERSION }}-ubuntu-2204
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Ninja
+      run: |
+        sudo apt-get install ninja-build
+    - name: build
+      run: |
+        mkdir build && cd build
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_BUILD_SHARED_LIB=ON -GNinja ..
+        cmake --build .
+    - name: package
+      run: |
+        rm -rf ${{ env.PACKAGENAME }}
+        mkdir -p ${{ env.PACKAGENAME }}
+        cp -a build/*.so ${{ env.PACKAGENAME }}
+        rm -f ${{ env.PACKAGENAME }}.zip
+        zip -9 -y -r ${{ env.PACKAGENAME }}.zip ${{ env.PACKAGENAME }}
+    - name: upload-zip
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.PACKAGENAME }}
+        path: ${{ env.PACKAGENAME }}.zip
+
   # publish-rwkv2onnx-to-pypi:
   #   name: Publish rwkv2onnx Python 🐍 distribution 📦 to PyPI
   #   if: ${{ github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') }}
