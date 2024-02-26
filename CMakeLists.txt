@@ -223,7 +223,8 @@ add_library(faster_rwkv INTERFACE)
 target_link_libraries(faster_rwkv INTERFACE "$<LINK_LIBRARY:WHOLE_ARCHIVE,faster_rwkv_internal>")
 
 if (FR_BUILD_SHARED_LIB)
-    add_library(faster_rwkvd SHARED "$<TARGET_OBJECTS:faster_rwkv_internal>")
+    add_library(faster_rwkvd SHARED faster_rwkvd.cpp)
+    target_link_libraries(faster_rwkvd "$<LINK_LIBRARY:WHOLE_ARCHIVE,faster_rwkv_internal>")
 endif()
 
 add_executable(export_ncnn export_ncnn.cpp)
