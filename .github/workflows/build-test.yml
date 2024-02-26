@@ -9,7 +9,75 @@ env:
   CI: 1
 
 jobs:
+  setup:
+    permissions:
+      contents: none
+    runs-on: ubuntu-latest
+    outputs:
+      VERSION: ${{ steps.get_version.outputs.VERSION }}
+    steps:
+    - name: get-version
+      id: get_version
+      run: echo "VERSION=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
+
+  ubuntu-2204:
+    needs: [setup]
+    runs-on: ubuntu-22.04
+    env:
+      PACKAGENAME: faster-rwkv-${{ needs.setup.outputs.VERSION }}-ubuntu-2204
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Ninja
+      run: |
+        sudo apt-get install ninja-build
+    - name: build
+      run: |
+        mkdir build && cd build
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_BUILD_SHARED_LIB=ON -GNinja ..
+        cmake --build .
+    - name: package
+      run: |
+        rm -rf ${{ env.PACKAGENAME }}
+        mkdir -p ${{ env.PACKAGENAME }}
+        cp -a build/*.so ${{ env.PACKAGENAME }}
+        rm -f ${{ env.PACKAGENAME }}.zip
+        zip -9 -y -r ${{ env.PACKAGENAME }}.zip ${{ env.PACKAGENAME }}
+    - name: upload-zip
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.PACKAGENAME }}
+        path: ${{ env.PACKAGENAME }}.zip
+
+  aarch64-android-ndk-28:
+    needs: [setup]
+    runs-on: ubuntu-22.04
+    env:
+      PACKAGENAME: faster-rwkv-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Ninja
+      run: |
+        sudo apt-get install ninja-build
+    - name: build
+      run: |
+        mkdir build && cd build
+        cmake -DFR_ENABLE_NCNN=ON -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-28 -DANDROID_NDK=$ANDROID_NDK -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_BUILD_SHARED_LIB=ON -GNinja ..
+        cmake --build .
+    - name: package
+      run: |
+        rm -rf ${{ env.PACKAGENAME }}
+        mkdir -p ${{ env.PACKAGENAME }}
+        cp -a build/*.so ${{ env.PACKAGENAME }}
+        rm -f ${{ env.PACKAGENAME }}.zip
+        zip -9 -y -r ${{ env.PACKAGENAME }}.zip ${{ env.PACKAGENAME }}
+    - name: upload-zip
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.PACKAGENAME }}
+        path: ${{ env.PACKAGENAME }}.zip
+
   build-and-test:
+    needs: [setup]
     # Use ubuntu 20.04 to build with enough old glibc, so that products can be distributed to more Linux distributions
     runs-on: ubuntu-20.04
 
@@ -148,6 +216,16 @@ jobs:
           build-android-aar/abc_music-android
           build-android-aar/midi_music-android
 
+    - name: Download artifact from job ubuntu-2204
+      uses: actions/download-artifact@v3
+      with:
+        name: faster-rwkv-${{ needs.setup.outputs.VERSION }}-ubuntu-2204
+    
+    - name: Download artifact from job aarch64-android-ndk-28
+      uses: actions/download-artifact@v3
+      with:
+        name: faster-rwkv-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28
+
     - uses: "marvinpinto/action-automatic-releases@latest"
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
       with:
@@ -161,6 +239,8 @@ jobs:
           build-android-aar/chat-android
           build-android-aar/abc_music-android
           build-android-aar/midi_music-android
+          faster-rwkv-${{ needs.setup.outputs.VERSION }}-ubuntu-2204.zip
+          faster-rwkv-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28.zip
 
     - uses: "marvinpinto/action-automatic-releases@latest"
       if: ${{ github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') }}
@@ -173,6 +253,8 @@ jobs:
           build-android-aar/chat-android
           build-android-aar/abc_music-android
           build-android-aar/midi_music-android
+          faster-rwkv-${{ needs.setup.outputs.VERSION }}-ubuntu-2204.zip
+          faster-rwkv-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28.zip
 
   build-rwkv2onnx-wheels:
     env:
@@ -218,45 +300,6 @@ jobs:
       with:
         name: rwkv2onnx-wheels
         path: ./wheelhouse/*.whl
-
-  setup:
-    permissions:
-      contents: none
-    runs-on: ubuntu-latest
-    outputs:
-      VERSION: ${{ steps.get_version.outputs.VERSION }}
-    steps:
-    - name: get-version
-      id: get_version
-      run: echo "VERSION=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
-
-  ubuntu-2204:
-    needs: [setup]
-    runs-on: ubuntu-22.04
-    env:
-      PACKAGENAME: faster-rwkv-${{ needs.setup.outputs.VERSION }}-ubuntu-2204
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install Ninja
-      run: |
-        sudo apt-get install ninja-build
-    - name: build
-      run: |
-        mkdir build && cd build
-        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_BUILD_SHARED_LIB=ON -GNinja ..
-        cmake --build .
-    - name: package
-      run: |
-        rm -rf ${{ env.PACKAGENAME }}
-        mkdir -p ${{ env.PACKAGENAME }}
-        cp -a build/*.so ${{ env.PACKAGENAME }}
-        rm -f ${{ env.PACKAGENAME }}.zip
-        zip -9 -y -r ${{ env.PACKAGENAME }}.zip ${{ env.PACKAGENAME }}
-    - name: upload-zip
-      uses: actions/upload-artifact@v3
-      with:
-        name: ${{ env.PACKAGENAME }}
-        path: ${{ env.PACKAGENAME }}.zip
 
   # publish-rwkv2onnx-to-pypi:
   #   name: Publish rwkv2onnx Python 🐍 distribution 📦 to PyPI
