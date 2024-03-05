@@ -20,6 +20,29 @@ jobs:
       id: get_version
       run: echo "VERSION=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
 
+  windows-vs2019:
+    needs: [setup]
+    runs-on: windows-latest
+    env:
+      PACKAGENAME: faster-rwkv-${{ needs.setup.outputs.VERSION }}-windows-vs2019
+    steps:
+    - uses: actions/checkout@v4
+    - name: build
+      run: |
+        mkdir build-x64 && cd build-x64
+        cmake -A x64 -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_BUILD_SHARED_LIB=ON ..
+        cmake --build . --config ${{env.BUILD_TYPE}} -j4
+    - name: package
+      run: |
+        mkdir ${{ env.PACKAGENAME }}/x64
+        Copy-Item -Path build-x64/Release/*.dll -Destination ${{ env.PACKAGENAME }}/x64 -Recurse
+        7z a -r ${{ env.PACKAGENAME }}.zip ${{ env.PACKAGENAME }}
+    - name: upload-zip
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.PACKAGENAME }}
+        path: ${{ env.PACKAGENAME }}.zip
+
   ubuntu-2204:
     needs: [setup]
     runs-on: ubuntu-22.04
@@ -226,6 +249,11 @@ jobs:
       with:
         name: faster-rwkv-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28
 
+    - name: Download artifact from job windows-vs2019
+      uses: actions/download-artifact@v3
+      with:
+        name: faster-rwkv-${{ needs.setup.outputs.VERSION }}-windows-vs2019
+
     - uses: "marvinpinto/action-automatic-releases@latest"
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
       with:
@@ -241,6 +269,7 @@ jobs:
           build-android-aar/midi_music-android
           faster-rwkv-${{ needs.setup.outputs.VERSION }}-ubuntu-2204.zip
           faster-rwkv-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28.zip
+          faster-rwkv-${{ needs.setup.outputs.VERSION }}-windows-vs2019.zip
 
     - uses: "marvinpinto/action-automatic-releases@latest"
       if: ${{ github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') }}
