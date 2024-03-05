@@ -20,22 +20,36 @@ jobs:
       id: get_version
       run: echo "VERSION=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
 
-  windows-vs2019:
+  windows-vs2022:
     needs: [setup]
     runs-on: windows-latest
     env:
-      PACKAGENAME: faster-rwkv-${{ needs.setup.outputs.VERSION }}-windows-vs2019
+      PACKAGENAME: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-windows-vs2022
     steps:
     - uses: actions/checkout@v4
-    - name: build
+    - name: build-x64
       run: |
         mkdir build-x64 && cd build-x64
         cmake -A x64 -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_BUILD_SHARED_LIB=ON ..
         cmake --build . --config ${{env.BUILD_TYPE}} -j4
+    - name: build-x86
+      run: |
+        mkdir build-x86 && cd build-x86
+        cmake -T v142,host=x64 -A Win32 -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_BUILD_SHARED_LIB=ON ..
+        cmake --build . --config ${{env.BUILD_TYPE}} -j4
+    - name: build-arm64
+      run: |
+        mkdir build-arm64 && cd build-arm64
+        cmake -T v142,host=x64 -A arm64 -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_BUILD_SHARED_LIB=ON ..
+        cmake --build . --config ${{env.BUILD_TYPE}} -j4
     - name: package
       run: |
         mkdir ${{ env.PACKAGENAME }}/x64
+        mkdir ${{ env.PACKAGENAME }}/x86
+        mkdir ${{ env.PACKAGENAME }}/arm64
         Copy-Item -Path build-x64/Release/*.dll -Destination ${{ env.PACKAGENAME }}/x64 -Recurse
+        Copy-Item -Path build-x86/Release/*.dll -Destination ${{ env.PACKAGENAME }}/x86 -Recurse
+        Copy-Item -Path build-arm64/Release/*.dll -Destination ${{ env.PACKAGENAME }}/arm64 -Recurse
         7z a -r ${{ env.PACKAGENAME }}.zip ${{ env.PACKAGENAME }}
     - name: upload-zip
       uses: actions/upload-artifact@v3
@@ -47,7 +61,7 @@ jobs:
     needs: [setup]
     runs-on: ubuntu-22.04
     env:
-      PACKAGENAME: faster-rwkv-${{ needs.setup.outputs.VERSION }}-ubuntu-2204
+      PACKAGENAME: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-ubuntu-2204
     steps:
     - uses: actions/checkout@v4
     - name: Install Ninja
@@ -75,7 +89,7 @@ jobs:
     needs: [setup]
     runs-on: ubuntu-22.04
     env:
-      PACKAGENAME: faster-rwkv-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28
+      PACKAGENAME: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28
     steps:
     - uses: actions/checkout@v4
     - name: Install Ninja
@@ -242,17 +256,17 @@ jobs:
     - name: Download artifact from job ubuntu-2204
       uses: actions/download-artifact@v3
       with:
-        name: faster-rwkv-${{ needs.setup.outputs.VERSION }}-ubuntu-2204
+        name: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-ubuntu-2204
     
     - name: Download artifact from job aarch64-android-ndk-28
       uses: actions/download-artifact@v3
       with:
-        name: faster-rwkv-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28
+        name: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28
 
     - name: Download artifact from job windows-vs2019
       uses: actions/download-artifact@v3
       with:
-        name: faster-rwkv-${{ needs.setup.outputs.VERSION }}-windows-vs2019
+        name: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-windows-vs2019
 
     - uses: "marvinpinto/action-automatic-releases@latest"
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
@@ -267,9 +281,9 @@ jobs:
           build-android-aar/chat-android
           build-android-aar/abc_music-android
           build-android-aar/midi_music-android
-          faster-rwkv-${{ needs.setup.outputs.VERSION }}-ubuntu-2204.zip
-          faster-rwkv-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28.zip
-          faster-rwkv-${{ needs.setup.outputs.VERSION }}-windows-vs2019.zip
+          libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-ubuntu-2204.zip
+          libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28.zip
+          libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-windows-vs2022.zip
 
     - uses: "marvinpinto/action-automatic-releases@latest"
       if: ${{ github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') }}
@@ -282,8 +296,9 @@ jobs:
           build-android-aar/chat-android
           build-android-aar/abc_music-android
           build-android-aar/midi_music-android
-          faster-rwkv-${{ needs.setup.outputs.VERSION }}-ubuntu-2204.zip
-          faster-rwkv-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28.zip
+          libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-ubuntu-2204.zip
+          libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28.zip
+          libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-windows-vs2022.zip
 
   build-rwkv2onnx-wheels:
     env:
