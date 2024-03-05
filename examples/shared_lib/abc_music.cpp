@@ -2,7 +2,11 @@
 #include <iostream>
 #include <sstream>
 #include <chrono>
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <dlfcn.h>
+#endif
 #include <vector>
 
 #include "../../faster_rwkvd.h"
@@ -32,14 +36,36 @@ int main(int argc, char **argv) {
     std::cout << "input_file: " << argv[3] << std::endl;
   }
   std::cout.setf(std::ios::unitbuf);
+
+#ifdef _WIN32
+  std::cout << "Loading faster_rwkvd.dll" << std::endl;
+  HMODULE handle = LoadLibrary("faster_rwkvd.dll");
+  if (handle == NULL) {
+    std::cerr << "Cannot load library: " << GetLastError() << std::endl;
+    return 1;
+  }
+#else
   std::cout << "Loading libfaster_rwkvd.so" << std::endl;
   void *handle = dlopen("libfaster_rwkvd.so", RTLD_LAZY);
   CHECK();
+#endif
 
   rwkv_model_t (*model_create)(const char*, const char*);
   rwkv_tokenizer_t (*tokenizer_create)();
   rwkv_sampler_t (*sampler_create)();
   char (*model_run)(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, const char, float, int, float);
+
+#ifdef _WIN32
+  model_create = (rwkv_model_t (*)(const char*, const char*))GetProcAddress(handle, "rwkv_model_create");
+  tokenizer_create = (rwkv_tokenizer_t (*)())GetProcAddress(handle, "rwkv_ABCTokenizer_create");
+  sampler_create = (rwkv_sampler_t (*)())GetProcAddress(handle, "rwkv_sampler_create");
+  model_run = (char (*)(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, const char, float, int, float))GetProcAddress(
+      handle, "rwkv_abcmodel_run_with_tokenizer_and_sampler");
+  if (model_create == NULL || tokenizer_create == NULL || sampler_create == NULL || model_run == NULL) {
+    std::cerr << "Cannot load symbol: " << GetLastError() << std::endl;
+    return 1;
+  }
+#else
   model_create = (rwkv_model_t (*)(const char*, const char*))dlsym(handle, "rwkv_model_create");
   CHECK();
   tokenizer_create = (rwkv_tokenizer_t (*)())dlsym(handle, "rwkv_ABCTokenizer_create");
@@ -48,6 +74,7 @@ int main(int argc, char **argv) {
   CHECK();
   model_run = (char (*)(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, const char, float, int, float))dlsym(handle, "rwkv_abcmodel_run_with_tokenizer_and_sampler");
   CHECK();
+#endif
 
   rwkv_model_t model = model_create(argv[1], argv[2]);
   rwkv_tokenizer_t tokenizer = tokenizer_create();
