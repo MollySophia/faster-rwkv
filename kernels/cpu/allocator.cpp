@@ -17,7 +17,13 @@ public:
     return aligned_alloc(kAlignSize, size);
 #endif
   }
-  void Deallocate(void *ptr) { free(ptr); }
+  void Deallocate(void *ptr) { 
+#ifdef _MSC_VER
+    _aligned_free(ptr);
+#else
+    free(ptr);
+#endif
+  }
 };
 
 rwkv::Allocator& allocator() {

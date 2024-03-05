@@ -70,7 +70,7 @@ void init_model(Model *model, Device device, const std::string &_path,
         << "File \"" << param_path << "\" does not exist";
     auto n_layer = 0;
     std::ifstream param_file(param_path);
-    int i;
+    int i = 0;
     for (std::string line; std::getline(param_file, line); i++) {
       if (line.find("Input") == 0 && line.find("state_") != std::string::npos) {
         auto tmp = line.substr(line.find("state_"));
