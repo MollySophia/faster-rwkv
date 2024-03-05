@@ -114,7 +114,7 @@ jobs:
         path: ${{ env.PACKAGENAME }}.zip
 
   build-and-test:
-    needs: [setup]
+    needs: [setup, ubuntu-2204, aarch64-android-ndk-28, windows-vs2022]
     # Use ubuntu 20.04 to build with enough old glibc, so that products can be distributed to more Linux distributions
     runs-on: ubuntu-20.04
 
