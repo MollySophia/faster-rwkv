@@ -54,6 +54,7 @@ int main(int argc, char **argv) {
   rwkv_tokenizer_t (*tokenizer_create)();
   rwkv_sampler_t (*sampler_create)();
   char (*model_run)(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, const char, float, int, float);
+  char (*model_run_prompt)(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, const char*, const int, float, int, float);
 
 #ifdef _WIN32
   model_create = (rwkv_model_t (*)(const char*, const char*))GetProcAddress(handle, "rwkv_model_create");
@@ -61,6 +62,8 @@ int main(int argc, char **argv) {
   sampler_create = (rwkv_sampler_t (*)())GetProcAddress(handle, "rwkv_sampler_create");
   model_run = (char (*)(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, const char, float, int, float))GetProcAddress(
       handle, "rwkv_abcmodel_run_with_tokenizer_and_sampler");
+  model_run_prompt = (char (*)(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, const char*, const int, float, int, float))GetProcAddress(
+      handle, "rwkv_abcmodel_run_prompt");
   if (model_create == NULL || tokenizer_create == NULL || sampler_create == NULL || model_run == NULL) {
     std::cerr << "Cannot load symbol: " << GetLastError() << std::endl;
     return 1;
@@ -73,6 +76,8 @@ int main(int argc, char **argv) {
   sampler_create = (rwkv_sampler_t (*)())dlsym(handle, "rwkv_sampler_create");
   CHECK();
   model_run = (char (*)(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, const char, float, int, float))dlsym(handle, "rwkv_abcmodel_run_with_tokenizer_and_sampler");
+  CHECK();
+  model_run_prompt = (char (*)(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, const char*, const int, float, int, float))dlsym(handle, "rwkv_abcmodel_run_prompt");
   CHECK();
 #endif
 
@@ -92,10 +97,7 @@ int main(int argc, char **argv) {
     std::string result = input;
     auto start = std::chrono::system_clock::now();
 
-    char output = model_run(model, tokenizer, sampler, bos_token_id, 1.f, 1, 0.f);
-    for (auto i : input) {
-      output = model_run(model, tokenizer, sampler, i, 1.f, 1, 0.f);
-    }
+    char output = model_run_prompt(model, tokenizer, sampler, input.c_str(), input.length(), 1.f, 1, 0.f);
 
     for (int i = 0; i < 1024; i++) {
       std::cout << output;

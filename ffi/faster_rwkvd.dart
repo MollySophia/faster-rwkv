@@ -89,6 +89,45 @@ class faster_rwkvd {
       .asFunction<void Function(rwkv_sampler_t, int)>();
 
   /// @brief Run the RWKV model with single input, with encoder/sampler/decoder.
+  int rwkv_abcmodel_run_prompt(
+    rwkv_model_t model_handle,
+    rwkv_tokenizer_t tokenizer_handle,
+    rwkv_sampler_t sampler_handle,
+    ffi.Pointer<ffi.Char> input,
+    int input_length,
+    double temperature,
+    int top_k,
+    double top_p,
+  ) {
+    return _rwkv_abcmodel_run_prompt(
+      model_handle,
+      tokenizer_handle,
+      sampler_handle,
+      input,
+      input_length,
+      temperature,
+      top_k,
+      top_p,
+    );
+  }
+
+  late final _rwkv_abcmodel_run_promptPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Char Function(
+              rwkv_model_t,
+              rwkv_tokenizer_t,
+              rwkv_sampler_t,
+              ffi.Pointer<ffi.Char>,
+              ffi.Int,
+              ffi.Float,
+              ffi.Int,
+              ffi.Float)>>('rwkv_abcmodel_run_prompt');
+  late final _rwkv_abcmodel_run_prompt =
+      _rwkv_abcmodel_run_promptPtr.asFunction<
+          int Function(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t,
+              ffi.Pointer<ffi.Char>, int, double, int, double)>();
+
+  /// @brief Run the RWKV model with single input, with encoder/sampler/decoder.
   int rwkv_abcmodel_run_with_tokenizer_and_sampler(
     rwkv_model_t model_handle,
     rwkv_tokenizer_t tokenizer_handle,

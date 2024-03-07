@@ -41,6 +41,33 @@ char rwkv_abcmodel_run_with_tokenizer_and_sampler(rwkv_model_t model_handle,
     return output[0];
 }
 
+char rwkv_abcmodel_run_prompt(rwkv_model_t model_handle,
+                    rwkv_tokenizer_t tokenizer_handle,
+                    rwkv_sampler_t sampler_handle,
+                    const char *input,
+                    const int input_length,
+                    // sampler params 
+                    float temperature, int top_k, float top_p) {
+    rwkv::ABCTokenizer* tokenizer = static_cast<rwkv::ABCTokenizer*>(tokenizer_handle);
+    rwkv::Sampler* sampler = static_cast<rwkv::Sampler*>(sampler_handle);
+    rwkv::Model* model = static_cast<rwkv::Model*>(model_handle);
+    std::string input_str(input, input_length);
+    std::vector<int> input_ids = tokenizer->encode(input_str);
+    input_ids.insert(input_ids.begin(), tokenizer->bos_token_id);
+    int output_id;
+    for (int i = 0; i < input_ids.size(); i++) {
+      if (i == (input_ids.size() - 1)) {
+        auto output_tensor = Copy(model->Run(input_ids[i]), rwkv::Device::kCPU);
+        output_id = sampler->Sample(output_tensor, temperature, top_k, top_p);
+      }
+      else {
+        model->Run(input_ids[i]);
+      }
+    }
+    std::string output = tokenizer->decode(output_id);
+    return (char)output[0];
+}
+
 #ifdef __cplusplus
 }
 #endif

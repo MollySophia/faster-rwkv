@@ -44,6 +44,17 @@ void rwkv_sampler_set_seed(rwkv_sampler_t sampler_handle, int seed);
 /**
  * @brief Run the RWKV model with single input, with encoder/sampler/decoder.
  */
+char rwkv_abcmodel_run_prompt(rwkv_model_t model_handle,
+                    rwkv_tokenizer_t tokenizer_handle,
+                    rwkv_sampler_t sampler_handle,
+                    const char *input,
+                    const int input_length,
+                    // sampler params 
+                    float temperature, int top_k, float top_p);
+
+/**
+ * @brief Run the RWKV model with single input, with encoder/sampler/decoder.
+ */
 char rwkv_abcmodel_run_with_tokenizer_and_sampler(rwkv_model_t model_handle,
                     rwkv_tokenizer_t tokenizer_handle,
                     rwkv_sampler_t sampler_handle,
