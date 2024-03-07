@@ -1,0 +1,16 @@
+name: faster_rwkv_ffigen
+
+environment:
+  sdk: '>=2.12.0 <=3.3.0'
+
+dev_dependencies:
+  ffigen: 11.0.0
+  ffi: 2.1.2
+
+ffigen:
+  name: faster_rwkvd
+  description: faster_rwkvd.h in dart
+  output: 'faster_rwkvd.dart'
+  headers:
+    entry-points:
+      - '../faster_rwkvd.h'
