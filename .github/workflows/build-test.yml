@@ -7,18 +7,6 @@ env:
   BUILD_TYPE: Release
   FR_MODEL_DIR: /tmp/models
   CI: 1
-  # For iOS builds
-  DEVELOPER_DIR: /Applications/Xcode_13.4.1.app/Contents/Developer
-  IOS_DEPLOYMENT_TARGET: '9.0'
-  MAC_DEPLOYMENT_TARGET: '10.9'
-  MAC_ARM64_DEPLOYMENT_TARGET: '11.0'
-  MAC_CATALYST_DEPLOYMENT_TARGET: '13.1'
-  WATCHOS_DEPLOYMENT_TARGET: '2.0'
-  TVOS_DEPLOYMENT_TARGET: '9.0'
-  ENABLE_BITCODE: OFF
-  ENABLE_ARC: OFF
-  ENABLE_VISIBILITY: OFF
-  EMSCRIPTEN_VERSION: 3.1.28
 
 jobs:
   setup:
@@ -71,6 +59,13 @@ jobs:
 
   openmp-ios:
     runs-on: macos-12
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_13.4.1.app/Contents/Developer
+      IOS_DEPLOYMENT_TARGET: '13.0'
+      ENABLE_BITCODE: OFF
+      ENABLE_ARC: OFF
+      ENABLE_VISIBILITY: OFF
+      EMSCRIPTEN_VERSION: 3.1.28
     steps:
     - name: cache-openmp
       id: cache-openmp
@@ -89,18 +84,6 @@ jobs:
         cd openmp-11.0.0.src
         sed -i'' -e '/.size __kmp_unnamed_critical_addr/d' runtime/src/z_Linux_asm.S
         sed -i'' -e 's/__kmp_unnamed_critical_addr/___kmp_unnamed_critical_addr/g' runtime/src/z_Linux_asm.S
-    - name: build-armv7
-      if: steps.cache-openmp.outputs.cache-hit != 'true'
-      run: |
-        cd openmp-11.0.0.src
-        mkdir -p build-armv7 && cd build-armv7
-        cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake -DPLATFORM=OS -DARCHS="armv7" \
-            -DDEPLOYMENT_TARGET=$IOS_DEPLOYMENT_TARGET -DENABLE_BITCODE=$ENABLE_BITCODE -DENABLE_ARC=$ENABLE_ARC -DENABLE_VISIBILITY=$ENABLE_VISIBILITY \
-            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install \
-            -DPERL_EXECUTABLE=/usr/local/bin/perl \
-            -DLIBOMP_ENABLE_SHARED=OFF -DLIBOMP_OMPT_SUPPORT=OFF -DLIBOMP_USE_HWLOC=OFF ..
-        cmake --build . -j 3
-        cmake --build . --target install/strip
     - name: build-arm64
       if: steps.cache-openmp.outputs.cache-hit != 'true'
       run: |
@@ -133,15 +116,91 @@ jobs:
         cp -a openmp-11.0.0.src/build-arm64/install/include $GITHUB_WORKSPACE/openmp-install
         mkdir -p $GITHUB_WORKSPACE/openmp-install/lib
         lipo -create \
-            openmp-11.0.0.src/build-armv7/install/lib/libomp.a \
             openmp-11.0.0.src/build-arm64/install/lib/libomp.a \
             openmp-11.0.0.src/build-arm64e/install/lib/libomp.a \
             -o $GITHUB_WORKSPACE/openmp-install/lib/libomp.a
     - name: upload
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: openmp-ios
         path: openmp-install
+  ios:
+    needs: [setup, openmp-ios]
+    runs-on: macos-12
+    env:
+      PACKAGENAME: libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios
+      DEVELOPER_DIR: /Applications/Xcode_13.4.1.app/Contents/Developer
+      IOS_DEPLOYMENT_TARGET: '13.0'
+      ENABLE_BITCODE: OFF
+      ENABLE_ARC: OFF
+      ENABLE_VISIBILITY: OFF
+      EMSCRIPTEN_VERSION: 3.1.28
+    steps:
+    - uses: actions/checkout@v4
+    - name: download-openmp-ios
+      uses: actions/download-artifact@v3
+      with:
+        name: openmp-ios
+        path: openmp-ios
+    - name: install-openmp
+      run: |
+        sudo cp openmp-ios/include/* $DEVELOPER_DIR/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/include
+        sudo cp openmp-ios/lib/libomp.a $DEVELOPER_DIR/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/lib
+    - name: build-arm64
+      run: |
+        mkdir build-arm64 && cd build-arm64
+        cmake -DFR_ENABLE_NCNN=ON -DFR_BUILD_STATIC_WRAPPER_LIB=ON -DFR_BUILD_EXECUTABLE=OFF \
+            -GXcode -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake -DPLATFORM=OS64 -DARCHS="arm64" \
+            -DDEPLOYMENT_TARGET=$IOS_DEPLOYMENT_TARGET -DENABLE_BITCODE=$ENABLE_BITCODE -DENABLE_ARC=$ENABLE_ARC -DENABLE_VISIBILITY=$ENABLE_VISIBILITY \
+            -DOpenMP_C_FLAGS="-Xclang -fopenmp" -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" -DOpenMP_C_LIB_NAMES="libomp" \
+            -DOpenMP_CXX_LIB_NAMES="libomp" -DOpenMP_libomp_LIBRARY="$DEVELOPER_DIR/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/lib/libomp.a" \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install ..
+        cmake --build . -j 3
+        cmake --build . --target install
+    - name: build-arm64e
+      run: |
+        mkdir build-arm64e && cd build-arm64e
+        cmake -DFR_ENABLE_NCNN=ON -DFR_BUILD_STATIC_WRAPPER_LIB=ON -DFR_BUILD_EXECUTABLE=OFF \
+            -GXcode -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake -DPLATFORM=OS64 -DARCHS="arm64e" \
+            -DDEPLOYMENT_TARGET=$IOS_DEPLOYMENT_TARGET -DENABLE_BITCODE=$ENABLE_BITCODE -DENABLE_ARC=$ENABLE_ARC -DENABLE_VISIBILITY=$ENABLE_VISIBILITY \
+            -DOpenMP_C_FLAGS="-Xclang -fopenmp" -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" -DOpenMP_C_LIB_NAMES="libomp" \
+            -DOpenMP_CXX_LIB_NAMES="libomp" -DOpenMP_libomp_LIBRARY="$DEVELOPER_DIR/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/lib/libomp.a" \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install ..
+        cmake --build . -j 3
+        cmake --build . --target install
+    - name: package-openmp
+      run: |
+        rm -rf openmp.framework
+        mkdir -p openmp.framework/Versions/A/Headers
+        mkdir -p openmp.framework/Versions/A/Resources
+        ln -s A openmp.framework/Versions/Current
+        ln -s Versions/Current/Headers openmp.framework/Headers
+        ln -s Versions/Current/Resources openmp.framework/Resources
+        ln -s Versions/Current/openmp openmp.framework/openmp
+        cp openmp-ios/lib/libomp.a openmp.framework/Versions/A/openmp
+        cp -a openmp-ios/include/* openmp.framework/Versions/A/Headers/
+        sed -e 's/__NAME__/openmp/g' -e 's/__IDENTIFIER__/org.llvm.openmp/g' -e 's/__VERSION__/11.0/g' Info.plist > openmp.framework/Versions/A/Resources/Info.plist
+    - name: package
+      run: |
+        rm -rf faster-rwkv.framework
+        mkdir -p faster-rwkv.framework/Versions/A/Headers
+        mkdir -p faster-rwkv.framework/Versions/A/Resources
+        ln -s A faster-rwkv.framework/Versions/Current
+        ln -s Versions/Current/Headers faster-rwkv.framework/Headers
+        ln -s Versions/Current/Resources faster-rwkv.framework/Resources
+        ln -s Versions/Current/faster-rwkv faster-rwkv.framework/faster-rwkv
+        lipo -create \
+            build-arm64/install/lib/libfaster_rwkv_static.a \
+            build-arm64e/install/lib/libfaster_rwkv_static.a \
+            -o faster-rwkv.framework/Versions/A/faster-rwkv
+        sed -e 's/__NAME__/faster-rwkv/g' -e 's/__IDENTIFIER__/com.rwkv.fasterrwkv/g' -e 's/__VERSION__/1.0/g' Info.plist > faster-rwkv.framework/Versions/A/Resources/Info.plist
+        rm -f ${{ env.PACKAGENAME }}.zip
+        zip -9 -y -r ${{ env.PACKAGENAME }}.zip openmp.framework faster-rwkv.framework
+    - name: upload-zip
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.PACKAGENAME }}
+        path: ${{ env.PACKAGENAME }}.zip
 
   ubuntu-2204:
     needs: [setup]
@@ -353,6 +412,11 @@ jobs:
       uses: actions/download-artifact@v3
       with:
         name: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-windows-vs2022
+    
+    - name: Download artifact from job ios
+      uses: actions/download-artifact@v3
+      with:
+        name: libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios
 
     - uses: "marvinpinto/action-automatic-releases@latest"
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}

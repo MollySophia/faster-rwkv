@@ -32,6 +32,7 @@ endif()
 option(FR_ENABLE_TESTS "Enable the tests of faster-rwkv" OFF)
 option(FR_MSVC_STATIC_RUNTIME "" OFF)
 option(FR_BUILD_SHARED_LIB "Build faster-rwkv as a shared library" OFF)
+option(FR_BUILD_STATIC_WRAPPER_LIB "Build faster-rwkv wrapper as a static library" OFF)
 
 if(NOT DEFINED CMAKE_POSITION_INDEPENDENT_CODE)
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -165,37 +166,56 @@ FetchContent_Declare(
 option(MSGPACK_USE_BOOST "" OFF)
 FetchContent_MakeAvailable(msgpack)
 
-add_library(faster_rwkv_internal
-        utils.cpp
-        model.cpp 
-        tensor.cpp
-        tokenizer.cpp
-        sampler.cpp
-        kernels/shape/shape_inference.cpp
-        kernels/cpu/allocator.cpp
-        kernels/cpu/fill.cpp
-        kernels/cpu/cast_dtype.cpp
-        kernels/cpu/repeat.cpp
-        kernels/cpu/transpose.cpp
-        kernels/cpu/slice.cpp
-        kernels/cpu/flip.cpp
-        kernels/cpu/pad.cpp
-        kernels/default/gather_ops.cpp
-        kernels/default/view_ops.cpp
-        kernels/cpu/softmax.cpp
-        kernels/default/att.cpp
-        kernels/default/ffn.cpp
-        kernels/default/init_model.cpp
-        kernels/default/model_forward.cpp
-        kernels/default/model_forward_seq.cpp
-        kernels/export-ncnn/kernels.cpp
-        ${cuda_kernel_srcs}
-        ${ncnn_kernel_srcs}
-        ${onnx_kernel_srcs}
-        )
+set(INTERNAL_SRC
+    utils.cpp
+    model.cpp 
+    tensor.cpp
+    tokenizer.cpp
+    sampler.cpp
+    kernels/shape/shape_inference.cpp
+    kernels/cpu/allocator.cpp
+    kernels/cpu/fill.cpp
+    kernels/cpu/cast_dtype.cpp
+    kernels/cpu/repeat.cpp
+    kernels/cpu/transpose.cpp
+    kernels/cpu/slice.cpp
+    kernels/cpu/flip.cpp
+    kernels/cpu/pad.cpp
+    kernels/default/gather_ops.cpp
+    kernels/default/view_ops.cpp
+    kernels/cpu/softmax.cpp
+    kernels/default/att.cpp
+    kernels/default/ffn.cpp
+    kernels/default/init_model.cpp
+    kernels/default/model_forward.cpp
+    kernels/default/model_forward_seq.cpp
+    kernels/export-ncnn/kernels.cpp
+    ${cuda_kernel_srcs}
+    ${ncnn_kernel_srcs}
+    ${onnx_kernel_srcs}
+    )
+
+add_library(faster_rwkv_internal ${INTERNAL_SRC})
 target_link_libraries(faster_rwkv_internal PUBLIC msgpack-cxx)
 target_link_libraries(faster_rwkv_internal PUBLIC ${ncnn_deps})
 target_include_directories(faster_rwkv_internal PUBLIC ${PROJECT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+
+if (FR_BUILD_STATIC_WRAPPER_LIB)
+    add_library(faster_rwkv_static STATIC faster_rwkvd.cpp ${INTERNAL_SRC})
+    target_link_libraries(faster_rwkv_static PUBLIC msgpack-cxx)
+    target_link_libraries(faster_rwkv_static PUBLIC ${ncnn_deps})
+    target_include_directories(faster_rwkv_static PUBLIC ${PROJECT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+    
+    include(GNUInstallDirs)
+    install(TARGETS faster_rwkv_static EXPORT faster_rwkv_static
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+    install(FILES
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+endif()
 
 if (FR_ENABLE_CUDA)
     find_package(CUDAToolkit REQUIRED)
