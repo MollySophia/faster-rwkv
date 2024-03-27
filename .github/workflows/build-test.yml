@@ -7,6 +7,18 @@ env:
   BUILD_TYPE: Release
   FR_MODEL_DIR: /tmp/models
   CI: 1
+  # For iOS builds
+  DEVELOPER_DIR: /Applications/Xcode_13.4.1.app/Contents/Developer
+  IOS_DEPLOYMENT_TARGET: '9.0'
+  MAC_DEPLOYMENT_TARGET: '10.9'
+  MAC_ARM64_DEPLOYMENT_TARGET: '11.0'
+  MAC_CATALYST_DEPLOYMENT_TARGET: '13.1'
+  WATCHOS_DEPLOYMENT_TARGET: '2.0'
+  TVOS_DEPLOYMENT_TARGET: '9.0'
+  ENABLE_BITCODE: OFF
+  ENABLE_ARC: OFF
+  ENABLE_VISIBILITY: OFF
+  EMSCRIPTEN_VERSION: 3.1.28
 
 jobs:
   setup:
@@ -56,6 +68,80 @@ jobs:
       with:
         name: ${{ env.PACKAGENAME }}
         path: ${{ env.PACKAGENAME }}.zip
+
+  openmp-ios:
+    runs-on: macos-12
+    steps:
+    - name: cache-openmp
+      id: cache-openmp
+      uses: actions/cache@v4
+      with:
+        path: openmp-install
+        key: openmp-ios-release-11.0.0-20230504
+    - name: checkout
+      if: steps.cache-openmp.outputs.cache-hit != 'true'
+      uses: actions/checkout@v4
+    - name: openmp
+      if: steps.cache-openmp.outputs.cache-hit != 'true'
+      run: |
+        wget https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/openmp-11.0.0.src.tar.xz
+        tar -xf openmp-11.0.0.src.tar.xz
+        cd openmp-11.0.0.src
+        sed -i'' -e '/.size __kmp_unnamed_critical_addr/d' runtime/src/z_Linux_asm.S
+        sed -i'' -e 's/__kmp_unnamed_critical_addr/___kmp_unnamed_critical_addr/g' runtime/src/z_Linux_asm.S
+    - name: build-armv7
+      if: steps.cache-openmp.outputs.cache-hit != 'true'
+      run: |
+        cd openmp-11.0.0.src
+        mkdir -p build-armv7 && cd build-armv7
+        cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake -DPLATFORM=OS -DARCHS="armv7" \
+            -DDEPLOYMENT_TARGET=$IOS_DEPLOYMENT_TARGET -DENABLE_BITCODE=$ENABLE_BITCODE -DENABLE_ARC=$ENABLE_ARC -DENABLE_VISIBILITY=$ENABLE_VISIBILITY \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install \
+            -DPERL_EXECUTABLE=/usr/local/bin/perl \
+            -DLIBOMP_ENABLE_SHARED=OFF -DLIBOMP_OMPT_SUPPORT=OFF -DLIBOMP_USE_HWLOC=OFF ..
+        cmake --build . -j 3
+        cmake --build . --target install/strip
+    - name: build-arm64
+      if: steps.cache-openmp.outputs.cache-hit != 'true'
+      run: |
+        cd openmp-11.0.0.src
+        mkdir -p build-arm64 && cd build-arm64
+        cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake -DPLATFORM=OS64 -DARCHS="arm64" \
+            -DDEPLOYMENT_TARGET=$IOS_DEPLOYMENT_TARGET -DENABLE_BITCODE=$ENABLE_BITCODE -DENABLE_ARC=$ENABLE_ARC -DENABLE_VISIBILITY=$ENABLE_VISIBILITY \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install \
+            -DPERL_EXECUTABLE=/usr/local/bin/perl \
+            -DLIBOMP_ENABLE_SHARED=OFF -DLIBOMP_OMPT_SUPPORT=OFF -DLIBOMP_USE_HWLOC=OFF ..
+        cmake --build . -j 3
+        cmake --build . --target install/strip
+    - name: build-arm64e
+      if: steps.cache-openmp.outputs.cache-hit != 'true'
+      run: |
+        cd openmp-11.0.0.src
+        mkdir -p build-arm64e && cd build-arm64e
+        cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake -DPLATFORM=OS64 -DARCHS="arm64e" \
+            -DDEPLOYMENT_TARGET=$IOS_DEPLOYMENT_TARGET -DENABLE_BITCODE=$ENABLE_BITCODE -DENABLE_ARC=$ENABLE_ARC -DENABLE_VISIBILITY=$ENABLE_VISIBILITY \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install \
+            -DPERL_EXECUTABLE=/usr/local/bin/perl \
+            -DLIBOMP_ENABLE_SHARED=OFF -DLIBOMP_OMPT_SUPPORT=OFF -DLIBOMP_USE_HWLOC=OFF ..
+        cmake --build . -j 3
+        cmake --build . --target install/strip
+    - name: merge-fat-library
+      if: steps.cache-openmp.outputs.cache-hit != 'true'
+      run: |
+        rm -rf $GITHUB_WORKSPACE/openmp-install
+        mkdir -p $GITHUB_WORKSPACE/openmp-install
+        cp -a openmp-11.0.0.src/build-arm64/install/include $GITHUB_WORKSPACE/openmp-install
+        mkdir -p $GITHUB_WORKSPACE/openmp-install/lib
+        lipo -create \
+            openmp-11.0.0.src/build-armv7/install/lib/libomp.a \
+            openmp-11.0.0.src/build-arm64/install/lib/libomp.a \
+            openmp-11.0.0.src/build-arm64e/install/lib/libomp.a \
+            -o $GITHUB_WORKSPACE/openmp-install/lib/libomp.a
+    - name: upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: openmp-ios
+        path: openmp-install
 
   ubuntu-2204:
     needs: [setup]
