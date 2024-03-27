@@ -11,6 +11,8 @@ project(faster-rwkv CXX)
 set(CMAKE_CXX_STANDARD 17)
 include(FetchContent)
 
+option(FR_BUILD_EXECUTABLE "" ON)
+
 option(FR_ENABLE_CUDA "Enable CUDA" OFF)
 # ONNX support is a WIP
 option(FR_ENABLE_ONNX_EXPORTING "Enable ONNX exporting" OFF)
@@ -230,29 +232,31 @@ if (FR_BUILD_SHARED_LIB)
     target_link_libraries(faster_rwkvd "$<LINK_LIBRARY:WHOLE_ARCHIVE,faster_rwkv_internal>")
 endif()
 
-add_executable(export_ncnn export_ncnn.cpp)
-target_link_libraries(export_ncnn faster_rwkv)
+if (FR_BUILD_EXECUTABLE)
+    add_executable(export_ncnn export_ncnn.cpp)
+    target_link_libraries(export_ncnn faster_rwkv)
 
-option(BENCHMARK_ENABLE_TESTING "Enable testing of the benchmark library." OFF)
-option(BENCHMARK_ENABLE_GTEST_TESTS "Enable building the unit tests which depend on gtest" OFF)
-FetchContent_Declare(
-        benchmark
-        GIT_REPOSITORY https://github.com/google/benchmark
-        GIT_TAG v1.8.2
-        SYSTEM
-        )
-FetchContent_MakeAvailable(benchmark)
-add_executable(bench_model bench_model.cpp)
-target_link_libraries(bench_model benchmark::benchmark faster_rwkv)
+    option(BENCHMARK_ENABLE_TESTING "Enable testing of the benchmark library." OFF)
+    option(BENCHMARK_ENABLE_GTEST_TESTS "Enable building the unit tests which depend on gtest" OFF)
+    FetchContent_Declare(
+            benchmark
+            GIT_REPOSITORY https://github.com/google/benchmark
+            GIT_TAG v1.8.2
+            SYSTEM
+            )
+    FetchContent_MakeAvailable(benchmark)
+    add_executable(bench_model bench_model.cpp)
+    target_link_libraries(bench_model benchmark::benchmark faster_rwkv)
 
-add_executable(chat chat.cpp)
-target_link_libraries(chat faster_rwkv)
+    add_executable(chat chat.cpp)
+    target_link_libraries(chat faster_rwkv)
 
-add_executable(abc_music abc_music.cpp)
-target_link_libraries(abc_music faster_rwkv)
+    add_executable(abc_music abc_music.cpp)
+    target_link_libraries(abc_music faster_rwkv)
 
-add_executable(midi_music midi_music.cpp)
-target_link_libraries(midi_music faster_rwkv)
+    add_executable(midi_music midi_music.cpp)
+    target_link_libraries(midi_music faster_rwkv)
+endif()
 
 if (FR_ENABLE_ONNX_EXPORTING)
     add_subdirectory(export_onnx)
@@ -266,7 +270,9 @@ if (FR_BUILD_PYTHON)
     add_subdirectory(python)
 endif()
 
-add_subdirectory(tools)
+if (FR_BUILD_EXECUTABLE)
+    add_subdirectory(tools)
+endif()
 if(FR_ENABLE_TESTS)
     add_subdirectory(tests)
 endif()
