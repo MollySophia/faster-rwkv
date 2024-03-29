@@ -466,7 +466,7 @@ jobs:
       with:
         name: libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios
 
-     - name: Download artifact from job ios-simulator
+    - name: Download artifact from job ios-simulator
       uses: actions/download-artifact@v3
       with:
         name: libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios-simulator
