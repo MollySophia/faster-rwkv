@@ -234,10 +234,10 @@ jobs:
             -o simulator/libfaster_rwkv_static.a
         rm -f ${{ env.PACKAGENAME }}.zip
         pushd native
-        zip -9 -y -r ${{ env.PACKAGENAME }}.zip libfaster_rwkv_static.a
+        zip -9 -y -r ../${{ env.PACKAGENAME }}.zip libfaster_rwkv_static.a
         popd
         pushd simulator
-        zip -9 -y -r ${{ env.PACKAGENAME }}-simulator.zip libfaster_rwkv_static.a
+        zip -9 -y -r ../${{ env.PACKAGENAME }}-simulator.zip libfaster_rwkv_static.a
         popd
     - name: upload-zip
       uses: actions/upload-artifact@v3
