@@ -142,9 +142,11 @@ jobs:
         lipo -create \
             openmp-11.0.0.src/build-arm64/install/lib/libomp.a \
             openmp-11.0.0.src/build-arm64e/install/lib/libomp.a \
+            -o $GITHUB_WORKSPACE/openmp-install/lib/libomp.a
+        lipo -create \
             openmp-11.0.0.src/build-simulator64/install/lib/libomp.a \
             openmp-11.0.0.src/build-simulatorarm64/install/lib/libomp.a \
-            -o $GITHUB_WORKSPACE/openmp-install/lib/libomp.a
+            -o $GITHUB_WORKSPACE/openmp-install/lib/libomp-simulator.a
     - name: upload
       uses: actions/upload-artifact@v3
       with:
@@ -220,19 +222,33 @@ jobs:
         cmake --build . --target install
     - name: package
       run: |
+        mkdir native
+        mkdir simulator
         lipo -create \
             build-arm64/install/lib/libfaster_rwkv_static.a \
             build-arm64e/install/lib/libfaster_rwkv_static.a \
+            -o native/libfaster_rwkv_static.a
+        lipo -create \
             build-simulator64/install/lib/libfaster_rwkv_static.a \
             build-simulatorarm64/install/lib/libfaster_rwkv_static.a \
-            -o libfaster_rwkv_static.a
+            -o simulator/libfaster_rwkv_static.a
         rm -f ${{ env.PACKAGENAME }}.zip
+        pushd native
         zip -9 -y -r ${{ env.PACKAGENAME }}.zip libfaster_rwkv_static.a
+        popd
+        pushd simulator
+        zip -9 -y -r ${{ env.PACKAGENAME }}-simulator.zip libfaster_rwkv_static.a
+        popd
     - name: upload-zip
       uses: actions/upload-artifact@v3
       with:
         name: ${{ env.PACKAGENAME }}
         path: ${{ env.PACKAGENAME }}.zip
+    - name: upload-zip-simulator
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.PACKAGENAME }}-simulator
+        path: ${{ env.PACKAGENAME }}-simulator.zip
 
   ubuntu-2204:
     needs: [setup]
@@ -450,6 +466,11 @@ jobs:
       with:
         name: libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios
 
+     - name: Download artifact from job ios-simulator
+      uses: actions/download-artifact@v3
+      with:
+        name: libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios-simulator
+
     - uses: "marvinpinto/action-automatic-releases@latest"
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
       with:
@@ -467,6 +488,7 @@ jobs:
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28.zip
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-windows-vs2022.zip
           libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios.zip
+          libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios-simulator.zip
 
     - uses: "marvinpinto/action-automatic-releases@latest"
       if: ${{ github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') }}
@@ -483,6 +505,7 @@ jobs:
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28.zip
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-windows-vs2022.zip
           libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios.zip
+          libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios-simulator.zip
 
   build-rwkv2onnx-wheels:
     env:
