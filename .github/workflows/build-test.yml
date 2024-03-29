@@ -108,6 +108,30 @@ jobs:
             -DLIBOMP_ENABLE_SHARED=OFF -DLIBOMP_OMPT_SUPPORT=OFF -DLIBOMP_USE_HWLOC=OFF ..
         cmake --build . -j 3
         cmake --build . --target install/strip
+    - name: build-simulator64
+      if: steps.cache-openmp.outputs.cache-hit != 'true'
+      run: |
+        cd openmp-11.0.0.src
+        mkdir -p build-simulator64 && cd build-simulator64
+        cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake -DPLATFORM=SIMULATOR64 \
+            -DDEPLOYMENT_TARGET=$IOS_DEPLOYMENT_TARGET -DENABLE_BITCODE=$ENABLE_BITCODE -DENABLE_ARC=$ENABLE_ARC -DENABLE_VISIBILITY=$ENABLE_VISIBILITY \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install \
+            -DPERL_EXECUTABLE=/usr/local/bin/perl \
+            -DLIBOMP_ENABLE_SHARED=OFF -DLIBOMP_OMPT_SUPPORT=OFF -DLIBOMP_USE_HWLOC=OFF ..
+        cmake --build . -j 3
+        cmake --build . --target install/strip
+    - name: build-simulatorarm64
+      if: steps.cache-openmp.outputs.cache-hit != 'true'
+      run: |
+        cd openmp-11.0.0.src
+        mkdir -p build-simulatorarm64 && cd build-simulatorarm64
+        cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake -DPLATFORM=SIMULATORARM64 \
+            -DDEPLOYMENT_TARGET=$IOS_DEPLOYMENT_TARGET -DENABLE_BITCODE=$ENABLE_BITCODE -DENABLE_ARC=$ENABLE_ARC -DENABLE_VISIBILITY=$ENABLE_VISIBILITY \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install \
+            -DPERL_EXECUTABLE=/usr/local/bin/perl \
+            -DLIBOMP_ENABLE_SHARED=OFF -DLIBOMP_OMPT_SUPPORT=OFF -DLIBOMP_USE_HWLOC=OFF ..
+        cmake --build . -j 3
+        cmake --build . --target install/strip
     - name: merge-fat-library
       if: steps.cache-openmp.outputs.cache-hit != 'true'
       run: |
@@ -118,6 +142,8 @@ jobs:
         lipo -create \
             openmp-11.0.0.src/build-arm64/install/lib/libomp.a \
             openmp-11.0.0.src/build-arm64e/install/lib/libomp.a \
+            openmp-11.0.0.src/build-simulator64/install/lib/libomp.a \
+            openmp-11.0.0.src/build-simulatorarm64/install/lib/libomp.a \
             -o $GITHUB_WORKSPACE/openmp-install/lib/libomp.a
     - name: upload
       uses: actions/upload-artifact@v3
@@ -168,34 +194,38 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install ..
         cmake --build . -j 3
         cmake --build . --target install
-    - name: package-openmp
+    - name: build-simulator64
       run: |
-        rm -rf openmp.framework
-        mkdir -p openmp.framework/Versions/A/Headers
-        mkdir -p openmp.framework/Versions/A/Resources
-        ln -s A openmp.framework/Versions/Current
-        ln -s Versions/Current/Headers openmp.framework/Headers
-        ln -s Versions/Current/Resources openmp.framework/Resources
-        ln -s Versions/Current/openmp openmp.framework/openmp
-        cp openmp-ios/lib/libomp.a openmp.framework/Versions/A/openmp
-        cp -a openmp-ios/include/* openmp.framework/Versions/A/Headers/
-        sed -e 's/__NAME__/openmp/g' -e 's/__IDENTIFIER__/org.llvm.openmp/g' -e 's/__VERSION__/11.0/g' Info.plist > openmp.framework/Versions/A/Resources/Info.plist
+        mkdir build-simulator64 && cd build-simulator64
+        cmake -DFR_ENABLE_NCNN=ON -DFR_BUILD_STATIC_WRAPPER_LIB=ON -DFR_BUILD_EXECUTABLE=OFF \
+            -GXcode -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake -DPLATFORM=SIMULATOR64 \
+            -DDEPLOYMENT_TARGET=$IOS_DEPLOYMENT_TARGET -DENABLE_BITCODE=$ENABLE_BITCODE -DENABLE_ARC=$ENABLE_ARC -DENABLE_VISIBILITY=$ENABLE_VISIBILITY \
+            -DOpenMP_C_FLAGS="-Xclang -fopenmp" -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" -DOpenMP_C_LIB_NAMES="libomp" \
+            -DOpenMP_CXX_LIB_NAMES="libomp" -DOpenMP_libomp_LIBRARY="$DEVELOPER_DIR/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/usr/lib/libomp.a" \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install ..
+        cmake --build . -j 3
+        cmake --build . --target install
+    - name: build-simulatorarm64
+      run: |
+        mkdir build-simulatorarm64 && cd build-simulatorarm64
+        cmake -DFR_ENABLE_NCNN=ON -DFR_BUILD_STATIC_WRAPPER_LIB=ON -DFR_BUILD_EXECUTABLE=OFF \
+            -GXcode -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake -DPLATFORM=SIMULATORARM64 \
+            -DDEPLOYMENT_TARGET=$IOS_DEPLOYMENT_TARGET -DENABLE_BITCODE=$ENABLE_BITCODE -DENABLE_ARC=$ENABLE_ARC -DENABLE_VISIBILITY=$ENABLE_VISIBILITY \
+            -DOpenMP_C_FLAGS="-Xclang -fopenmp" -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" -DOpenMP_C_LIB_NAMES="libomp" \
+            -DOpenMP_CXX_LIB_NAMES="libomp" -DOpenMP_libomp_LIBRARY="$DEVELOPER_DIR/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/usr/lib/libomp.a" \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install ..
+        cmake --build . -j 3
+        cmake --build . --target install
     - name: package
       run: |
-        rm -rf faster-rwkv.framework
-        mkdir -p faster-rwkv.framework/Versions/A/Headers
-        mkdir -p faster-rwkv.framework/Versions/A/Resources
-        ln -s A faster-rwkv.framework/Versions/Current
-        ln -s Versions/Current/Headers faster-rwkv.framework/Headers
-        ln -s Versions/Current/Resources faster-rwkv.framework/Resources
-        ln -s Versions/Current/faster-rwkv faster-rwkv.framework/faster-rwkv
         lipo -create \
             build-arm64/install/lib/libfaster_rwkv_static.a \
             build-arm64e/install/lib/libfaster_rwkv_static.a \
-            -o faster-rwkv.framework/Versions/A/faster-rwkv
-        sed -e 's/__NAME__/faster-rwkv/g' -e 's/__IDENTIFIER__/com.rwkv.fasterrwkv/g' -e 's/__VERSION__/1.0/g' Info.plist > faster-rwkv.framework/Versions/A/Resources/Info.plist
+            build-simulator64/install/lib/libfaster_rwkv_static.a \
+            build-simulatorarm64/install/lib/libfaster_rwkv_static.a \
+            -o libfaster_rwkv_static.a
         rm -f ${{ env.PACKAGENAME }}.zip
-        zip -9 -y -r ${{ env.PACKAGENAME }}.zip openmp.framework faster-rwkv.framework
+        zip -9 -y -r ${{ env.PACKAGENAME }}.zip libfaster_rwkv_static.a
     - name: upload-zip
       uses: actions/upload-artifact@v3
       with:
@@ -434,6 +464,7 @@ jobs:
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-ubuntu-2204.zip
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28.zip
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-windows-vs2022.zip
+          libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios.zip
 
     - uses: "marvinpinto/action-automatic-releases@latest"
       if: ${{ github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') }}
@@ -449,6 +480,7 @@ jobs:
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-ubuntu-2204.zip
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28.zip
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-windows-vs2022.zip
+          libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios.zip
 
   build-rwkv2onnx-wheels:
     env:
