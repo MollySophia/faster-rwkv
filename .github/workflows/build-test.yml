@@ -186,7 +186,7 @@ jobs:
             -DOpenMP_CXX_LIB_NAMES="libomp" -DOpenMP_libomp_LIBRARY="$DEVELOPER_DIR/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/lib/libomp.a" \
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install ..
         cmake --build . -j 3
-        cmake --build . --target install
+        cmake --build . --target install --config Release
     - name: build-arm64e
       run: |
         mkdir build-arm64e && cd build-arm64e
@@ -197,7 +197,7 @@ jobs:
             -DOpenMP_CXX_LIB_NAMES="libomp" -DOpenMP_libomp_LIBRARY="$DEVELOPER_DIR/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/usr/lib/libomp.a" \
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install ..
         cmake --build . -j 3
-        cmake --build . --target install
+        cmake --build . --target install --config Release
     - name: build-simulator64
       run: |
         mkdir build-simulator64 && cd build-simulator64
@@ -208,7 +208,7 @@ jobs:
             -DOpenMP_CXX_LIB_NAMES="libomp" -DOpenMP_libomp_LIBRARY="$DEVELOPER_DIR/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/usr/lib/libomp.a" \
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install ..
         cmake --build . -j 3
-        cmake --build . --target install
+        cmake --build . --target install --config Release
     - name: build-simulatorarm64
       run: |
         mkdir build-simulatorarm64 && cd build-simulatorarm64
@@ -219,7 +219,7 @@ jobs:
             -DOpenMP_CXX_LIB_NAMES="libomp" -DOpenMP_libomp_LIBRARY="$DEVELOPER_DIR/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/usr/lib/libomp.a" \
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install ..
         cmake --build . -j 3
-        cmake --build . --target install
+        cmake --build . --target install --config Release
     - name: package
       run: |
         mkdir native
