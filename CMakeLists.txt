@@ -23,6 +23,7 @@ else()
     option(FR_BUILD_PROTOBUF "Build protobuf (needed by onnx or ncnn on windows)" OFF)
 endif()
 option(FR_ENABLE_NCNN "Enable NCNN" ON)
+option(FR_ENABLE_QNN "Enable Qualcomm QNN backend" OFF)
 option(FR_BUILD_PYTHON "" OFF)
 if (DEFINED ANDROID_NDK)
     option(FR_BUILD_JNI "" ON)
@@ -105,6 +106,13 @@ if (FR_ENABLE_NCNN)
     set(ncnn_kernel_srcs
         kernels/ncnn/init_model.cpp
         kernels/ncnn/model_forward.cpp
+    )
+endif()
+
+if (FR_ENABLE_QNN)
+    set(qnn_kernel_srcs
+        kernels/qnn/init_model.cpp
+        kernels/qnn/model_forward.cpp
     )
 endif()
 
@@ -193,12 +201,25 @@ set(INTERNAL_SRC
     ${cuda_kernel_srcs}
     ${ncnn_kernel_srcs}
     ${onnx_kernel_srcs}
+    ${qnn_kernel_srcs}
     )
 
 add_library(faster_rwkv_internal ${INTERNAL_SRC})
 target_link_libraries(faster_rwkv_internal PUBLIC msgpack-cxx)
 target_link_libraries(faster_rwkv_internal PUBLIC ${ncnn_deps})
 target_include_directories(faster_rwkv_internal PUBLIC ${PROJECT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+
+if (FR_ENABLE_QNN)
+    target_include_directories(faster_rwkv_internal PUBLIC kernels/qnn/include)
+    target_link_directories(faster_rwkv_internal PUBLIC kernels/qnn/obj/aarch64-android/)
+    target_link_libraries(faster_rwkv_internal PUBLIC rwkv-qualcomm)
+endif()
+
+if (DEFINED ANDROID_NDK)
+    find_library(log-lib log)
+    find_library(android-lib android)
+    target_link_libraries(faster_rwkv_internal PUBLIC ${log-lib} ${android-lib})
+endif()
 
 if (FR_BUILD_STATIC_WRAPPER_LIB)
     add_library(faster_rwkv_static STATIC faster_rwkvd.cpp ${INTERNAL_SRC})

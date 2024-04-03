@@ -30,6 +30,7 @@ struct Model {
   const int n_ffn() const { return _n_ffn; }
   const std::string &version() const { return _version; }
   const std::any &extra() const { return _extra; }
+  const Device act_device() const { return _act_device; }
 
   DType weight_dtype() const { return _weight_dtype; }
 

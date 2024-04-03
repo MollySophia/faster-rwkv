@@ -1,0 +1,2 @@
+The prebuilt library is compiled from [rwkv-qualcomm](https://github.com/mollySophia/rwkv-qualcomm)
+The code is still a bit ugly and needs to be cleaned up. So use prebuilt library here for fast intregration for now.

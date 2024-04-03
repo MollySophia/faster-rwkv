@@ -191,6 +191,8 @@ KernelRegister model_forward_seq_reg_3("model_forward_seq", Device::kNCNN,
                                        ModelForwardSeqFallback);
 KernelRegister model_forward_seq_reg_4("model_forward_seq", Device::kONNX,
                                        ModelForwardSeqFallback);
+KernelRegister model_forward_seq_reg_5("model_forward_seq", Device::kQNN,
+                                       ModelForwardSeqFallback);
 
 } // namespace def
 } // namespace rwkv

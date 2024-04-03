@@ -47,6 +47,7 @@ enum class Device {
   kONNXMeta,
   kNCNN,
   kONNX,
+  kQNN,
 };
 std::optional<Device> &default_dispatch_device();
 

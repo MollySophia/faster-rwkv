@@ -36,6 +36,8 @@ Model::Model(const std::string &path, const std::string &strategy,
       return Device::kNCNN;
     } else if (dev_str == "onnx") {
       return Device::kONNX;
+    } else if (dev_str == "qnn" || dev_str == "qualcomm") {
+      return Device::kQNN;
     } else {
       RV_UNIMPLEMENTED();
     }
@@ -145,7 +147,7 @@ void Model::LoadStateFile(const std::string &path, void* asset_manager) {
 void Model::ResetStates() {
   _states.clear();
   // TODO:
-  auto device = (_act_device == Device::kNCNN || _act_device == Device::kONNX) ? Device::kCPU : _act_device;
+  auto device = (_act_device == Device::kNCNN || _act_device == Device::kONNX || _act_device == Device::kQNN) ? Device::kCPU : _act_device;
   if (this->_version == "4") {
     for (int i = 0; i < _n_layer; i++) {
       _states.push_back({});
