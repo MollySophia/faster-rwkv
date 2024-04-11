@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <stdlib.h>
 #ifdef FR_ENABLE_ANDROID_ASSET
 #include <android/asset_manager.h>
 #endif
@@ -38,6 +39,11 @@ void init_model(Model *model, Device device, const std::string &_path,
   }
 #endif
 
+  if (android_asset) {
+    setenv("ADSP_LIBRARY_PATH", path.substr(path.find_last_of(":") + 1).c_str(), 1);
+    path = path.substr(0, path.find_last_of(":"));
+  }
+
   auto remove_suffix = [](const std::string &str, const std::string &suffix) {
     if (str.size() < suffix.size()) {
       return str;
@@ -61,6 +67,10 @@ void init_model(Model *model, Device device, const std::string &_path,
   path = remove_suffix(path, ".bin");
   path = remove_suffix(path, ".config");
 
+  if (!android_asset) {
+    const auto model_dir = path.substr(0, path.find_last_of("/") + 1);
+    setenv("ADSP_LIBRARY_PATH", model_dir.c_str(), 1);
+  }
   const auto model_path = path + (context_binary ? ".bin" : ".so");
   const auto config_path = path + ".config";
 
@@ -68,22 +78,22 @@ void init_model(Model *model, Device device, const std::string &_path,
   auto &model_extra = *std::any_cast<std::shared_ptr<QnnExtra>>(model->extra());
 
   std::string config;
-// #ifdef FR_ENABLE_ANDROID_ASSET
-//   if (android_asset) {
-//     auto *mgr = std::any_cast<AAssetManager *>(extra);
-//     AAsset *asset =
-//         AAssetManager_open(mgr, config_path.c_str(), AASSET_MODE_BUFFER);
-//     if (asset) {
-//       const char *config_data =
-//           static_cast<const char *>(AAsset_getBuffer(asset));
-//       auto config_size = AAsset_getLength(asset);
-//       config = std::string(config_data, config_data + config_size);
-//       AAsset_close(asset);
-//     }
-//   } else {
-// #else
+#ifdef FR_ENABLE_ANDROID_ASSET
+  if (android_asset) {
+    auto *mgr = std::any_cast<AAssetManager *>(extra);
+    AAsset *asset =
+        AAssetManager_open(mgr, config_path.c_str(), AASSET_MODE_BUFFER);
+    if (asset) {
+      const char *config_data =
+          static_cast<const char *>(AAsset_getBuffer(asset));
+      auto config_size = AAsset_getLength(asset);
+      config = std::string(config_data, config_data + config_size);
+      AAsset_close(asset);
+    }
+  } else {
+#else
   {
-// #endif
+#endif
     std::ifstream config_file(config_path);
     if (config_file.good()) {
       std::stringstream ss;
@@ -126,47 +136,77 @@ void init_model(Model *model, Device device, const std::string &_path,
       }
     };
 
-    model->_version = get_value("version");
+    model->_version = get_value("version", "5.1");
     model->_act_dtype = str_to_dtype(get_value("act_dtype", "fp32"));
     model->_weight_dtype = str_to_dtype(get_value("weight_dtype", "fp32"));
-    model->_head_size = std::stoi(get_value("head_size"));
-    model->_n_embd = std::stoi(get_value("n_embd"));
+    model->_head_size = std::stoi(get_value("head_size", "64"));
+    model->_n_embd = std::stoi(get_value("n_embd", "512"));
     model->_head_size = model->_n_embd / model->_head_size;
-    model->_n_layer = std::stoi(get_value("n_layer"));
-    model->_n_att = std::stoi(get_value("n_att"));
-    model->_n_ffn = std::stoi(get_value("n_ffn"));
+    model->_n_layer = std::stoi(get_value("n_layer", "24"));
+    model->_n_att = std::stoi(get_value("n_att", "512"));
+    model->_n_ffn = std::stoi(get_value("n_ffn", "1792"));
     // model_extra.vocab_size = std::stoi(get_value("vocab_size"));
+  } else { // default config for abcmusic
+    if (model_path.find("ABC") == std::string::npos) {
+      RV_UNIMPLEMENTED() << "No config file found";
+    }
+
+    if (model_path.find("RWKV-6") != std::string::npos) {
+      model->_version = "6";
+    } else {
+      model->_version = "5.1";
+    }
+    model->_act_dtype = DType::kFloat32;
+    model->_weight_dtype = DType::kFloat32;
+    model->_head_size = 64;
+    model->_n_embd = 512;
+    model->_n_layer = 24;
+    model->_n_att = 512;
+    model->_n_ffn = 1792;
   }
+
+#ifdef FR_ENABLE_ANDROID_ASSET
+  AAsset *asset = nullptr;
+#endif
 
   if (context_binary) {
-// #if FR_ENABLE_ANDROID_ASSET
-//     AAsset *asset = nullptr;
-//     if (android_asset) {
-//       auto *mgr = std::any_cast<AAssetManager *>(extra);
-//       asset = AAssetManager_open(mgr, bin_path.c_str(), AASSET_MODE_BUFFER);
-//       if (asset) {
-//         const char *bin_data = static_cast<const char *>(AAsset_getBuffer(asset));
-//         uint64_t bin_size = AAsset_getLength64(asset);
-//         // todo
-//       }
-//     } else {
-// #else
+#ifdef FR_ENABLE_ANDROID_ASSET
+    if (android_asset) {
+      auto *mgr = std::any_cast<AAssetManager *>(extra);
+      asset = AAssetManager_open(mgr, model_path.c_str(), AASSET_MODE_BUFFER);
+      if (asset) {
+        uint8_t *bin_data = const_cast<uint8_t *>(static_cast<const uint8_t *>(AAsset_getBuffer(asset)));
+        uint64_t bin_size = AAsset_getLength64(asset);
+        if (StatusCode::SUCCESS != QnnRwkvBackendCreateWithContextBuffer(&model_extra.backend, &model_extra.modelHandle, model_path, "libQnnHtp.so", "libQnnSystem.so", bin_data, bin_size)) {
+          RV_UNIMPLEMENTED() << "QnnRwkvBackendCreateWithContext failed";
+        }
+      }
+    } else {
+#else
     {
-// #endif
-      QnnRwkvBackendCreateWithContext(&model_extra.backend, &model_extra.modelHandle, model_path, "libQnnHtp.so", "libQnnSystem.so");
+#endif
+      if (StatusCode::SUCCESS != QnnRwkvBackendCreateWithContext(&model_extra.backend, &model_extra.modelHandle, model_path, "libQnnHtp.so", "libQnnSystem.so")) {
+        if (StatusCode::SUCCESS != QnnRwkvBackendCreateWithContext(&model_extra.backend, &model_extra.modelHandle, model_path, "libQnnGpu.so", "libQnnSystem.so")) {
+          RV_UNIMPLEMENTED() << "QnnRwkvBackendCreateWithContext failed";
+        }
+      }
     }
   } else {
-    QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, "libQnnHtp.so");
+      if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, "libQnnHtp.so")) {
+        if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, "libQnnGpu.so")) {
+          RV_UNIMPLEMENTED() << "QnnRwkvBackendCreate failed";
+        }
+      }
   }
 
-// #if FR_ENABLE_ANDROID_ASSET
-//   if (asset) {
-//     AAsset_close(asset);
-//   } else {
-// #else
+#ifdef FR_ENABLE_ANDROID_ASSET
+  if (asset) {
+    AAsset_close(asset);
+  } else {
+#else
   {
-// #endif
-    // todo
+#endif
+
   }
 }
 

@@ -163,7 +163,7 @@ void Model::ResetStates() {
       _states.back().push_back(Copy(fill_(s5, 0), device));
     }
   } else {
-    RV_CHECK(_version.substr(0, 1) == "5");
+    RV_CHECK(_version.substr(0, 1) == "5" || _version.substr(0, 1) == "6");
     for (int i = 0; i < _n_layer; i++) {
       _states.push_back({});
       auto s1 = Tensor::Empty(Shape{_n_embd}, _act_dtype, Device::kCPU);

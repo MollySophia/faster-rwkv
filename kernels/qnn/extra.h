@@ -1,13 +1,15 @@
-#include <memory>
-#include <vector>
+#include <string>
 #include "librwkv-qualcomm.h"
 #include "tensor.h"
-#include <cstring>
 
 struct QnnExtra {
   QnnRwkvBackend_t backend;
   QnnRwkvModel_t modelHandle;
   rwkv::Shape output_shape;
+  std::string model_path;
+  std::string model_dir;
+  bool context_binary;
+  bool inited = false;
 };
 
 class QnnTensorWrapper {
