@@ -211,8 +211,14 @@ target_include_directories(faster_rwkv_internal PUBLIC ${PROJECT_SOURCE_DIR} ${C
 
 if (FR_ENABLE_QNN)
     target_include_directories(faster_rwkv_internal PUBLIC kernels/qnn/include)
-    target_link_directories(faster_rwkv_internal PUBLIC kernels/qnn/obj/aarch64-android/)
-    target_link_libraries(faster_rwkv_internal PUBLIC rwkv-qualcomm)
+    if (WIN32)
+        find_library(SHLWAPI Shlwapi.lib) 
+        target_link_directories(faster_rwkv_internal PUBLIC kernels/qnn/obj/aarch64-windows/)
+    else()
+        set(SHLWAPI)
+        target_link_directories(faster_rwkv_internal PUBLIC kernels/qnn/obj/aarch64-android/)
+    endif()
+    target_link_libraries(faster_rwkv_internal PUBLIC rwkv-qualcomm SHLWAPI)
 endif()
 
 if (DEFINED ANDROID_NDK)

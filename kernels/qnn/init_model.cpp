@@ -39,10 +39,12 @@ void init_model(Model *model, Device device, const std::string &_path,
   }
 #endif
 
+#ifdef FR_ENABLE_ANDROID_ASSET
   if (android_asset) {
     setenv("ADSP_LIBRARY_PATH", path.substr(path.find_last_of(":") + 1).c_str(), 1);
     path = path.substr(0, path.find_last_of(":"));
   }
+#endif
 
   auto remove_suffix = [](const std::string &str, const std::string &suffix) {
     if (str.size() < suffix.size()) {
@@ -57,21 +59,29 @@ void init_model(Model *model, Device device, const std::string &_path,
   bool context_binary = false;
   if (path.find(".bin") != std::string::npos) {
     context_binary = true;
-  } else if (path.find(".so") != std::string::npos) {
+  } else if (path.find(".so") != std::string::npos || path.find(".dll") != std::string::npos) {
     context_binary = false;
   } else {
     RV_UNIMPLEMENTED() << "unsupported model file: " << path << "\nExpecting .so or .bin";
   }
 
   path = remove_suffix(path, ".so");
+  path = remove_suffix(path, ".dll");
   path = remove_suffix(path, ".bin");
   path = remove_suffix(path, ".config");
 
+#ifndef _WIN32
   if (!android_asset) {
     const auto model_dir = path.substr(0, path.find_last_of("/") + 1);
     setenv("ADSP_LIBRARY_PATH", model_dir.c_str(), 1);
   }
+#endif
+
+#ifdef _WIN32
+  const auto model_path = path + (context_binary ? ".bin" : ".dll");
+#else
   const auto model_path = path + (context_binary ? ".bin" : ".so");
+#endif
   const auto config_path = path + ".config";
 
   model->_extra = std::make_shared<QnnExtra>();
@@ -185,18 +195,31 @@ void init_model(Model *model, Device device, const std::string &_path,
 #else
     {
 #endif
+
+#ifdef _WIN32
+      if (StatusCode::SUCCESS != QnnRwkvBackendCreateWithContext(&model_extra.backend, &model_extra.modelHandle, model_path, "QnnHtp.dll", "QnnSystem.dll")) {
+          RV_UNIMPLEMENTED() << "QnnRwkvBackendCreateWithContext failed";
+      }
+#else
       if (StatusCode::SUCCESS != QnnRwkvBackendCreateWithContext(&model_extra.backend, &model_extra.modelHandle, model_path, "libQnnHtp.so", "libQnnSystem.so")) {
         if (StatusCode::SUCCESS != QnnRwkvBackendCreateWithContext(&model_extra.backend, &model_extra.modelHandle, model_path, "libQnnGpu.so", "libQnnSystem.so")) {
           RV_UNIMPLEMENTED() << "QnnRwkvBackendCreateWithContext failed";
         }
       }
+#endif
     }
   } else {
+#ifdef _WIN32
+      if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, "QnnHtp.dll")) {
+          RV_UNIMPLEMENTED() << "QnnRwkvBackendCreate failed";
+      }
+#else
       if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, "libQnnHtp.so")) {
         if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, "libQnnGpu.so")) {
           RV_UNIMPLEMENTED() << "QnnRwkvBackendCreate failed";
         }
       }
+#endif
   }
 
 #ifdef FR_ENABLE_ANDROID_ASSET
