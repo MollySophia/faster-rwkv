@@ -162,6 +162,20 @@ class faster_rwkvd {
       _rwkv_abcmodel_run_with_tokenizer_and_samplerPtr.asFunction<
           int Function(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, int,
               double, int, double)>();
+
+  void rwkv_model_clear_states(
+    rwkv_model_t model_handle,
+  ) {
+    return _rwkv_model_clear_states(
+      model_handle,
+    );
+  }
+
+  late final _rwkv_model_clear_statesPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(rwkv_model_t)>>(
+          'rwkv_model_clear_states');
+  late final _rwkv_model_clear_states =
+      _rwkv_model_clear_statesPtr.asFunction<void Function(rwkv_model_t)>();
 }
 
 typedef rwkv_model_t = ffi.Pointer<ffi.Void>;

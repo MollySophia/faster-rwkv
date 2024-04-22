@@ -62,6 +62,8 @@ char rwkv_abcmodel_run_with_tokenizer_and_sampler(rwkv_model_t model_handle,
                     // sampler params 
                     float temperature, int top_k, float top_p);
 
+void rwkv_model_clear_states(rwkv_model_t model_handle);
+
 #ifdef __cplusplus
 }
 #endif

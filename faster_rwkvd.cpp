@@ -68,6 +68,10 @@ char rwkv_abcmodel_run_prompt(rwkv_model_t model_handle,
     return (char)output[0];
 }
 
+void rwkv_model_clear_states(rwkv_model_t model_handle) {
+  static_cast<rwkv::Model*>(model_handle)->ResetStates();
+}
+
 #ifdef __cplusplus
 }
 #endif
