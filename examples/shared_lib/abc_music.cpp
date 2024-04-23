@@ -14,11 +14,11 @@
 #define CHECK()                                             \
 {                                                           \
     const char* dlsym_error = dlerror();                    \
-    if (dlsym_error) {                                      \
-        std::cerr << "Cannot load libray or symbol: "            \
-             << dlsym_error << '\n';                        \
-        exit(1);                                            \
-    }                                                       \
+    fprintf(stderr,                                     \
+          "Cannot load libray or symbol at %s:%d: %s\n", \
+          __FILE__,__LINE__,                             \
+          dlsym_error?:"Unknown Error");                 \
+    exit(1);                                            \
 }
 
 static const bool kShowSpeed = std::getenv("FR_SHOW_SPEED") != nullptr;
@@ -46,8 +46,9 @@ int main(int argc, char **argv) {
   }
 #else
   std::cout << "Loading libfaster_rwkvd.so" << std::endl;
-  void *handle = dlopen("libfaster_rwkvd.so", RTLD_LAZY);
-  CHECK();
+  void *handle = dlopen("libfaster_rwkvd.so", RTLD_NOW);
+  if(!handle)
+    CHECK();
 #endif
 
   rwkv_model_t (*model_create)(const char*, const char*);
@@ -70,15 +71,20 @@ int main(int argc, char **argv) {
   }
 #else
   model_create = (rwkv_model_t (*)(const char*, const char*))dlsym(handle, "rwkv_model_create");
-  CHECK();
+  if(!model_create)
+    CHECK();
   tokenizer_create = (rwkv_tokenizer_t (*)())dlsym(handle, "rwkv_ABCTokenizer_create");
-  CHECK();
+  if(!tokenizer_create)
+    CHECK();
   sampler_create = (rwkv_sampler_t (*)())dlsym(handle, "rwkv_sampler_create");
-  CHECK();
+  if(!sampler_create)
+    CHECK();
   model_run = (char (*)(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, const char, float, int, float))dlsym(handle, "rwkv_abcmodel_run_with_tokenizer_and_sampler");
-  CHECK();
+  if(!model_run)
+    CHECK();
   model_run_prompt = (char (*)(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, const char*, const int, float, int, float))dlsym(handle, "rwkv_abcmodel_run_prompt");
-  CHECK();
+  if(!model_run_prompt)
+    CHECK();
 #endif
 
   rwkv_model_t model = model_create(argv[1], argv[2]);
@@ -94,6 +100,8 @@ int main(int argc, char **argv) {
   std::cout << input;
   static const int N_TRIAL = 1;
   for (int t = 0; t < N_TRIAL; t++) {
+    // IMPORTANT: clear states before each round of generation
+    rwkv_model_clear_states(model);
     std::string result = input;
     auto start = std::chrono::system_clock::now();
 
