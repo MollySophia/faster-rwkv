@@ -72,8 +72,13 @@ void init_model(Model *model, Device device, const std::string &_path,
 
 #ifndef _WIN32
   if (!android_asset) {
-    const auto model_dir = path.substr(0, path.find_last_of("/") + 1);
-    setenv("ADSP_LIBRARY_PATH", model_dir.c_str(), 1);
+    if (path.find_last_of(":") != std::string::npos) {
+      const auto model_dir = path.substr(path.find_last_of(":") + 1);
+      setenv("ADSP_LIBRARY_PATH", model_dir.c_str(), 1);
+    } else {
+      const auto model_dir = path.substr(0, path.find_last_of("/") + 1);
+      setenv("ADSP_LIBRARY_PATH", model_dir.c_str(), 1);
+    }
   }
 #endif
 
