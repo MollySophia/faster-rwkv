@@ -55,6 +55,20 @@ class faster_rwkvd {
   late final _rwkv_ABCTokenizer_create =
       _rwkv_ABCTokenizer_createPtr.asFunction<rwkv_tokenizer_t Function()>();
 
+  rwkv_tokenizer_t rwkv_Tokenizer_create(
+    ffi.Pointer<ffi.Char> path,
+  ) {
+    return _rwkv_Tokenizer_create(
+      path,
+    );
+  }
+
+  late final _rwkv_Tokenizer_createPtr = _lookup<
+          ffi.NativeFunction<rwkv_tokenizer_t Function(ffi.Pointer<ffi.Char>)>>(
+      'rwkv_Tokenizer_create');
+  late final _rwkv_Tokenizer_create = _rwkv_Tokenizer_createPtr
+      .asFunction<rwkv_tokenizer_t Function(ffi.Pointer<ffi.Char>)>();
+
   /// @brief Create an RWKV sampler.
   ///
   /// @return rwkv_sampler_t The handle to the created sampler.
@@ -176,6 +190,63 @@ class faster_rwkvd {
           'rwkv_model_clear_states');
   late final _rwkv_model_clear_states =
       _rwkv_model_clear_statesPtr.asFunction<void Function(rwkv_model_t)>();
+
+  void rwkv_midimodel_run_prompt_from_file(
+    rwkv_model_t model_handle,
+    rwkv_tokenizer_t tokenizer_handle,
+    rwkv_sampler_t sampler_handle,
+    ffi.Pointer<ffi.Char> input_path,
+    int input_path_length,
+    ffi.Pointer<ffi.Char> output_path,
+    int output_path_length,
+    int max_length,
+    double temperature,
+    int top_k,
+    double top_p,
+  ) {
+    return _rwkv_midimodel_run_prompt_from_file(
+      model_handle,
+      tokenizer_handle,
+      sampler_handle,
+      input_path,
+      input_path_length,
+      output_path,
+      output_path_length,
+      max_length,
+      temperature,
+      top_k,
+      top_p,
+    );
+  }
+
+  late final _rwkv_midimodel_run_prompt_from_filePtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(
+              rwkv_model_t,
+              rwkv_tokenizer_t,
+              rwkv_sampler_t,
+              ffi.Pointer<ffi.Char>,
+              ffi.Int,
+              ffi.Pointer<ffi.Char>,
+              ffi.Int,
+              ffi.Int,
+              ffi.Float,
+              ffi.Int,
+              ffi.Float)>>('rwkv_midimodel_run_prompt_from_file');
+  late final _rwkv_midimodel_run_prompt_from_file =
+      _rwkv_midimodel_run_prompt_from_filePtr.asFunction<
+          void Function(
+              rwkv_model_t,
+              rwkv_tokenizer_t,
+              rwkv_sampler_t,
+              ffi.Pointer<ffi.Char>,
+              int,
+              ffi.Pointer<ffi.Char>,
+              int,
+              int,
+              double,
+              int,
+              double)>();
 }
 
 typedef rwkv_model_t = ffi.Pointer<ffi.Void>;

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #ifdef FR_ENABLE_ANDROID_ASSET
 #include <android/asset_manager.h>
+#include <android/log.h>
 #endif
 
 #include "librwkv-qualcomm.h"
@@ -15,6 +16,8 @@
 #include <model.h>
 #undef private
 #include <utils.h>
+
+#define TAG "faster-rwkv"
 
 namespace rwkv {
 namespace _qnn {
@@ -39,13 +42,24 @@ void init_model(Model *model, Device device, const std::string &_path,
   }
 #endif
 
+#ifndef _WIN32
 #ifdef FR_ENABLE_ANDROID_ASSET
   if (android_asset) {
     setenv("ADSP_LIBRARY_PATH", path.substr(path.find_last_of(":") + 1).c_str(), 1);
     path = path.substr(0, path.find_last_of(":"));
+  } 
+  else 
+#endif
+  {
+    if (path.find_last_of(":") != std::string::npos) {
+      setenv("ADSP_LIBRARY_PATH", path.substr(path.find_last_of(":") + 1).c_str(), 1);
+      path = path.substr(0, path.find_last_of(":"));
+    } else {
+      const auto model_dir = path.substr(0, path.find_last_of("/") + 1);
+      setenv("ADSP_LIBRARY_PATH", model_dir.c_str(), 1);
+    }
   }
 #endif
-
   auto remove_suffix = [](const std::string &str, const std::string &suffix) {
     if (str.size() < suffix.size()) {
       return str;
@@ -69,18 +83,7 @@ void init_model(Model *model, Device device, const std::string &_path,
   path = remove_suffix(path, ".dll");
   path = remove_suffix(path, ".bin");
   path = remove_suffix(path, ".config");
-
-#ifndef _WIN32
-  if (!android_asset) {
-    if (path.find_last_of(":") != std::string::npos) {
-      const auto model_dir = path.substr(path.find_last_of(":") + 1);
-      setenv("ADSP_LIBRARY_PATH", model_dir.c_str(), 1);
-    } else {
-      const auto model_dir = path.substr(0, path.find_last_of("/") + 1);
-      setenv("ADSP_LIBRARY_PATH", model_dir.c_str(), 1);
-    }
-  }
-#endif
+  path = remove_suffix(path, ".emb");
 
 #ifdef _WIN32
   const auto model_path = path + (context_binary ? ".bin" : ".dll");
@@ -88,6 +91,7 @@ void init_model(Model *model, Device device, const std::string &_path,
   const auto model_path = path + (context_binary ? ".bin" : ".so");
 #endif
   const auto config_path = path + ".config";
+  const auto emb_path = path + ".emb";
 
   model->_extra = std::make_shared<QnnExtra>();
   auto &model_extra = *std::any_cast<std::shared_ptr<QnnExtra>>(model->extra());
@@ -160,7 +164,7 @@ void init_model(Model *model, Device device, const std::string &_path,
     model->_n_layer = std::stoi(get_value("n_layer", "24"));
     model->_n_att = std::stoi(get_value("n_att", "512"));
     model->_n_ffn = std::stoi(get_value("n_ffn", "1792"));
-    // model_extra.vocab_size = std::stoi(get_value("vocab_size"));
+    model_extra.vocab_size = std::stoi(get_value("vocab_size"));
   } else { // default config for abcmusic
     if (model_path.find("ABC") == std::string::npos) {
       RV_UNIMPLEMENTED() << "No config file found";
@@ -182,6 +186,7 @@ void init_model(Model *model, Device device, const std::string &_path,
 
 #ifdef FR_ENABLE_ANDROID_ASSET
   AAsset *asset = nullptr;
+  AAsset *emb_asset = nullptr;
 #endif
 
   if (context_binary) {
@@ -189,11 +194,19 @@ void init_model(Model *model, Device device, const std::string &_path,
     if (android_asset) {
       auto *mgr = std::any_cast<AAssetManager *>(extra);
       asset = AAssetManager_open(mgr, model_path.c_str(), AASSET_MODE_BUFFER);
+      emb_asset = AAssetManager_open(mgr, emb_path.c_str(), AASSET_MODE_BUFFER);
       if (asset) {
         uint8_t *bin_data = const_cast<uint8_t *>(static_cast<const uint8_t *>(AAsset_getBuffer(asset)));
         uint64_t bin_size = AAsset_getLength64(asset);
-        if (StatusCode::SUCCESS != QnnRwkvBackendCreateWithContextBuffer(&model_extra.backend, &model_extra.modelHandle, model_path, "libQnnHtp.so", "libQnnSystem.so", bin_data, bin_size)) {
-          RV_UNIMPLEMENTED() << "QnnRwkvBackendCreateWithContext failed";
+        uint8_t *emb_data = nullptr;
+        uint64_t emb_size = 0;
+        if (emb_asset) {
+          emb_data = const_cast<uint8_t *>(static_cast<const uint8_t *>(AAsset_getBuffer(emb_asset)));
+          emb_size = AAsset_getLength64(emb_asset);
+        }
+        if (StatusCode::SUCCESS != QnnRwkvBackendCreateWithContextBuffer(&model_extra.backend, &model_extra.modelHandle,
+                         model_path, "libQnnHtp.so", "libQnnSystem.so", bin_data, bin_size, emb_data, emb_size, model_extra.vocab_size)) {
+          RV_UNIMPLEMENTED() << "QnnRwkvBackendCreateWithContextBuffer failed";
         }
       }
     } else {

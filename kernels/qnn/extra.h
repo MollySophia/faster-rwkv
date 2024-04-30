@@ -5,6 +5,7 @@
 struct QnnExtra {
   QnnRwkvBackend_t backend;
   QnnRwkvModel_t modelHandle;
+  int vocab_size;
   rwkv::Shape output_shape;
   std::string model_path;
   std::string model_dir;

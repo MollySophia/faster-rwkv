@@ -26,6 +26,9 @@ rwkv_model_t rwkv_model_create(const char* path, const char* strategy);
  */
 rwkv_tokenizer_t rwkv_ABCTokenizer_create();
 
+// For chat and midi models
+rwkv_tokenizer_t rwkv_Tokenizer_create(const char *path);
+
 /**
  * @brief Create an RWKV sampler.
  * 
@@ -63,6 +66,17 @@ char rwkv_abcmodel_run_with_tokenizer_and_sampler(rwkv_model_t model_handle,
                     float temperature, int top_k, float top_p);
 
 void rwkv_model_clear_states(rwkv_model_t model_handle);
+
+void rwkv_midimodel_run_prompt_from_file(rwkv_model_t model_handle,
+                    rwkv_tokenizer_t tokenizer_handle,
+                    rwkv_sampler_t sampler_handle,
+                    const char *input_path,
+                    const int input_path_length,
+                    const char *output_path,
+                    const int output_path_length,
+                    const int max_length,
+                    // sampler params 
+                    float temperature, int top_k, float top_p);
 
 #ifdef __cplusplus
 }
