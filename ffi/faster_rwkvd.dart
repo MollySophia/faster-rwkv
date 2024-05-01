@@ -247,6 +247,63 @@ class faster_rwkvd {
               double,
               int,
               double)>();
+
+  void rwkv_midimodel_run_with_text_prompt(
+    rwkv_model_t model_handle,
+    rwkv_tokenizer_t tokenizer_handle,
+    rwkv_sampler_t sampler_handle,
+    ffi.Pointer<ffi.Char> input_text,
+    int input_text_length,
+    ffi.Pointer<ffi.Char> output_path,
+    int output_path_length,
+    int max_length,
+    double temperature,
+    int top_k,
+    double top_p,
+  ) {
+    return _rwkv_midimodel_run_with_text_prompt(
+      model_handle,
+      tokenizer_handle,
+      sampler_handle,
+      input_text,
+      input_text_length,
+      output_path,
+      output_path_length,
+      max_length,
+      temperature,
+      top_k,
+      top_p,
+    );
+  }
+
+  late final _rwkv_midimodel_run_with_text_promptPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(
+              rwkv_model_t,
+              rwkv_tokenizer_t,
+              rwkv_sampler_t,
+              ffi.Pointer<ffi.Char>,
+              ffi.Int,
+              ffi.Pointer<ffi.Char>,
+              ffi.Int,
+              ffi.Int,
+              ffi.Float,
+              ffi.Int,
+              ffi.Float)>>('rwkv_midimodel_run_with_text_prompt');
+  late final _rwkv_midimodel_run_with_text_prompt =
+      _rwkv_midimodel_run_with_text_promptPtr.asFunction<
+          void Function(
+              rwkv_model_t,
+              rwkv_tokenizer_t,
+              rwkv_sampler_t,
+              ffi.Pointer<ffi.Char>,
+              int,
+              ffi.Pointer<ffi.Char>,
+              int,
+              int,
+              double,
+              int,
+              double)>();
 }
 
 typedef rwkv_model_t = ffi.Pointer<ffi.Void>;

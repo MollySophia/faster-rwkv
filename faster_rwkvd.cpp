@@ -96,23 +96,23 @@ void rwkv_model_clear_states(rwkv_model_t model_handle) {
   static_cast<rwkv::Model*>(model_handle)->ResetStates();
 }
 
-void rwkv_midimodel_run_prompt_from_file(rwkv_model_t model_handle,
-                    rwkv_tokenizer_t tokenizer_handle,
-                    rwkv_sampler_t sampler_handle,
-                    const char *input_path,
-                    const int input_path_length,
-                    const char *output_path,
-                    const int output_path_length,
-                    const int max_length,
-                    // sampler params 
-                    float temperature, int top_k, float top_p) {
+void rwkv_midimodel_run_with_text_prompt(
+  rwkv_model_t model_handle,
+  rwkv_tokenizer_t tokenizer_handle,
+  rwkv_sampler_t sampler_handle,
+  const char *input_text,
+  const int input_text_length,
+  const char *output_path,
+  const int output_path_length,
+  const int max_length,
+  // sampler params 
+  float temperature, int top_k, float top_p
+) {
   rwkv::Tokenizer* tokenizer = static_cast<rwkv::Tokenizer*>(tokenizer_handle);
   rwkv::Sampler* sampler = static_cast<rwkv::Sampler*>(sampler_handle);
   rwkv::Model* model = static_cast<rwkv::Model*>(model_handle);
-  std::string input_path_str(input_path, input_path_length);
   std::string output_path_str(output_path, output_path_length);
-  std::string result;
-  midi_to_str(input_path_str, result);
+  std::string result(input_text, input_text_length);
 
   std::vector<int> input_ids = tokenizer->encode(result);
   auto output_tensor = Copy(model->Run(input_ids), rwkv::Device::kCPU);
@@ -140,6 +140,23 @@ void rwkv_midimodel_run_prompt_from_file(rwkv_model_t model_handle,
     output_tensor = model->Run(output_id);
   }
   str_to_midi(result, output_path_str);
+}
+
+void rwkv_midimodel_run_prompt_from_file(rwkv_model_t model_handle,
+  rwkv_tokenizer_t tokenizer_handle,
+  rwkv_sampler_t sampler_handle,
+  const char *input_path,
+  const int input_path_length,
+  const char *output_path,
+  const int output_path_length,
+  const int max_length,
+  // sampler params 
+  float temperature, int top_k, float top_p) {
+
+  std::string input_path_str(input_path, input_path_length);
+  std::string result;
+  midi_to_str(input_path_str, result);
+  rwkv_midimodel_run_with_text_prompt(model_handle, tokenizer_handle, sampler_handle, result.c_str(), result.size(), output_path, output_path_length, max_length, temperature, top_k, top_p);
 }
 
 #ifdef __cplusplus
