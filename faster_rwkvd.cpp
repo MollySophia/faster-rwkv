@@ -8,8 +8,8 @@
 #include <fstream>
 
 static void midi_to_str(const std::string &midi_path, std::string &result) {
-  system(("py/env/bin/python3 py/midi_to_str.py " + midi_path + " --output py/prompt.txt").c_str());
-  std::ifstream ifs("py/prompt.txt");
+  system(("midi_to_str.exe " + midi_path + " --output prompt.txt").c_str());
+  std::ifstream ifs("prompt.txt");
   std::stringstream buffer;
   buffer << ifs.rdbuf();
   result = buffer.str();
@@ -20,7 +20,9 @@ static void midi_to_str(const std::string &midi_path, std::string &result) {
 static void str_to_midi(const std::string &result, const std::string &midi_path) {
   std::string result_modified(result);
   result_modified.replace(result_modified.begin(), result_modified.end(), "<pad>", "<start>");
-  system(("py/env/bin/python3 py/str_to_midi.py --output " + midi_path + " " + result_modified).c_str());
+  std::ofstream ofs("result.txt");
+  ofs << result_modified;
+  system(("str_to_midi.exe --output " + midi_path + " result.txt").c_str());
 }
 
 #ifdef __cplusplus
