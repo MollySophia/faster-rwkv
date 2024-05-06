@@ -312,6 +312,24 @@ class faster_rwkvd {
       _rwkv_midimodel_run_with_tokenizer_and_samplerPtr.asFunction<
           void Function(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, double,
               int, double)>();
+
+  void rwkv_midimodel_save_result_to_midi(
+    ffi.Pointer<ffi.Char> midi_path,
+    int midi_path_length,
+  ) {
+    return _rwkv_midimodel_save_result_to_midi(
+      midi_path,
+      midi_path_length,
+    );
+  }
+
+  late final _rwkv_midimodel_save_result_to_midiPtr = _lookup<
+          ffi
+          .NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Char>, ffi.Int)>>(
+      'rwkv_midimodel_save_result_to_midi');
+  late final _rwkv_midimodel_save_result_to_midi =
+      _rwkv_midimodel_save_result_to_midiPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Char>, int)>();
 }
 
 typedef rwkv_model_t = ffi.Pointer<ffi.Void>;
