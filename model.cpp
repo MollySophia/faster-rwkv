@@ -8,6 +8,10 @@
 #ifdef FR_ENABLE_CUDA
 #include <cuda_runtime.h>
 #endif
+#ifdef FR_ENABLE_QNN
+#include <kernels/qnn/include/librwkv-qualcomm.h>
+#include <kernels/qnn/extra.h>
+#endif
 #include <fstream>
 #include <iostream>
 #include <msgpack.hpp>
@@ -145,6 +149,15 @@ void Model::LoadStateFile(const std::string &path, void* asset_manager) {
 }
 
 void Model::ResetStates() {
+#ifdef FR_ENABLE_QNN
+  if (_act_device == Device::kQNN) {
+    QnnRwkvBackend_t _backend;
+    auto &extra = *std::any_cast<std::shared_ptr<QnnExtra>>(this->extra());
+    _backend = extra.backend;
+    QnnRwkvResetStates(_backend);
+    return;
+  }
+#endif
   _states.clear();
   // TODO:
   auto device = (_act_device == Device::kNCNN || _act_device == Device::kONNX || _act_device == Device::kQNN) ? Device::kCPU : _act_device;
