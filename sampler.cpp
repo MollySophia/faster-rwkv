@@ -6,6 +6,7 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <chrono>
 
 #include <check.h>
 #include <kernels/kernels.h>
@@ -45,32 +46,49 @@ int Sampler::Sample(const Tensor &logits, float temperature, int top_k,
   temperature = std::clamp(temperature, 0.1f, 5.f);
 
   // softmax (temperature is applied in another place)
-  auto probs = softmax(logits, 1.f);
+  // auto probs = softmax(logits, 1.f);
+  auto probs = logits;
   std::vector<std::pair<int, float>> id_and_probs;
   id_and_probs.reserve(probs.numel());
   for (int i = 0; i < probs.numel(); i++) {
     id_and_probs.push_back({i, probs.data_ptr<float>()[i]});
   }
 
-  // sort
-  std::sort(id_and_probs.begin(), id_and_probs.end(),
+  std::nth_element(id_and_probs.begin(), id_and_probs.begin() + top_k - 1,
+                   id_and_probs.end(),
+                   [&](auto p1, auto p2) { return p1.second > p2.second; });
+  std::sort(id_and_probs.begin(), id_and_probs.begin() + top_k - 1,
             [&](auto p1, auto p2) { return p1.second > p2.second; });
 
-  int len = id_and_probs.size();
+  auto fast_exp = [](float a) {
+    union {
+        float f;
+        int x;
+    } u;
+    u.x = (int)(12102203 * a + 1064866805);
+    return u.f;
+  };
+
+  float softmax_sum = 0;
+  for (int i = 0; i < top_k; i++) {
+    id_and_probs[i].second = fast_exp(id_and_probs[i].second);
+    softmax_sum += id_and_probs[i].second;
+  }
+
+  for (int i = 0; i < top_k; i++) {
+    id_and_probs[i].second /= softmax_sum;
+  }
+
+  int len = top_k;
 
   // top-p
   float cumsum = 0;
-  for (int i = 0; i < len; i++) {
+  for (int i = 0; i < top_k; i++) {
     cumsum += id_and_probs[i].second;
     if (cumsum >= top_p) {
       len = i + 1;
       break;
     }
-  }
-
-  // top-k
-  if (top_k > 0) {
-    len = std::min(len, top_k);
   }
 
   if (kDebug) {
