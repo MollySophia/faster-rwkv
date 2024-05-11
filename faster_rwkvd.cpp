@@ -117,7 +117,7 @@ int rwkv_midimodel_check_stopped(rwkv_tokenizer_t tokenizer_handle) {
   return (token_ids[token_ids.size()-1] == tokenizer->eos_token_id()) ? 1 : 0;
 }
 
-void rwkv_midimodel_run_with_text_prompt(
+char* rwkv_midimodel_run_with_text_prompt(
   rwkv_model_t model_handle,
   rwkv_tokenizer_t tokenizer_handle,
   rwkv_sampler_t sampler_handle,
@@ -134,13 +134,13 @@ void rwkv_midimodel_run_with_text_prompt(
   std::vector<int> input_ids = tokenizer->encode(result);
   auto output_tensor = Copy(model->Run(input_ids), rwkv::Device::kCPU);
   int output_id = sampler->Sample(output_tensor, temperature, top_k, top_p);
-  std::string output = tokenizer->decode(output_id);
-  last_out = output;
-  result += " " + output;
+  last_out = tokenizer->decode(output_id);
+  result += " " + last_out;
   token_ids.push_back(output_id);
+  return (char*)last_out.c_str();
 }
 
-void rwkv_midimodel_run_prompt_from_file(rwkv_model_t model_handle,
+char* rwkv_midimodel_run_prompt_from_file(rwkv_model_t model_handle,
   rwkv_tokenizer_t tokenizer_handle,
   rwkv_sampler_t sampler_handle,
   const char *input_path,
@@ -150,10 +150,10 @@ void rwkv_midimodel_run_prompt_from_file(rwkv_model_t model_handle,
   std::string input_path_str(input_path, input_path_length);
   std::string str;
   midi_to_str(input_path_str, str);
-  rwkv_midimodel_run_with_text_prompt(model_handle, tokenizer_handle, sampler_handle, str.c_str(), str.size(), temperature, top_k, top_p);
+  return rwkv_midimodel_run_with_text_prompt(model_handle, tokenizer_handle, sampler_handle, str.c_str(), str.size(), temperature, top_k, top_p);
 }
 
-void rwkv_midimodel_run_with_tokenizer_and_sampler(rwkv_model_t model_handle,
+char* rwkv_midimodel_run_with_tokenizer_and_sampler(rwkv_model_t model_handle,
                     rwkv_tokenizer_t tokenizer_handle,
                     rwkv_sampler_t sampler_handle,
                     // sampler params
@@ -170,9 +170,8 @@ void rwkv_midimodel_run_with_tokenizer_and_sampler(rwkv_model_t model_handle,
           (token_ids.size() - 2000) / 500.;                      // not too short, not too long
       output_tensor.data_ptr<float>()[127] -= 1.; // avoid "t125"
     int output_id = sampler->Sample(output_tensor, temperature, top_k, top_p);
-    std::string output = tokenizer->decode(output_id);
-    last_out = output;
-    result += " " + output;
+    last_out = tokenizer->decode(output_id);
+    result += " " + last_out;
     token_ids.push_back(output_id);
     for (const auto &[id, occurence] : occurences) {
       occurences[id] *= 0.997;
@@ -182,6 +181,7 @@ void rwkv_midimodel_run_with_tokenizer_and_sampler(rwkv_model_t model_handle,
     } else {
       occurences[output_id] += 0.3;
     }
+    return (char*)last_out.c_str();
 }
 
 void rwkv_midimodel_save_result_to_midi(const char *midi_path, const int midi_path_length) {
