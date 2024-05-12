@@ -10,6 +10,7 @@
 #ifdef _WIN32
 #include "shellapi.h"
 #include "windows.h"
+#include <direct.h>
 #endif
 
 std::string result;
