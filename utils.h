@@ -49,6 +49,18 @@ inline std::string read_file(const std::string &_path,
   }
 }
 
+#ifdef _WIN32
+inline std::vector<uint8_t> read_file_to_vector(const std::string &_path,
+                             void *_asset_manager = nullptr) {
+  const std::string &path = _path;
+  RV_CHECK(file_exists(path)) << "File \"" << path << "\" does not exist";
+  std::basic_ifstream<uint8_t> stream(path, std::ios::in | std::ios::binary);
+  auto eos = std::istreambuf_iterator<uint8_t>();
+  auto buffer = std::vector<uint8_t>(std::istreambuf_iterator<uint8_t>(stream), eos);
+  return buffer;
+}
+#endif
+
 namespace rwkv {
 namespace utils {
 LengthType indices_to_offset(const Shape &shape,

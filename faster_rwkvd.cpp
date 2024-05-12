@@ -1,11 +1,16 @@
 #include "faster_rwkvd.h"
-
 #include "model.h"
-#include "stdlib.h"
 #include "sampler.h"
-#include "tokenizer.h"
+#include "stdlib.h"
 #include "tensor.h"
+#include "tokenizer.h"
+#include <cstring>
 #include <fstream>
+
+#ifdef _WIN32
+#include "shellapi.h"
+#include "windows.h"
+#endif
 
 std::string result;
 std::string last_out;
@@ -13,9 +18,38 @@ std::vector<int> token_ids;
 std::map<int, float> occurences;
 
 #ifdef _WIN32
-static void midi_to_str(const std::string &midi_path, std::string &result) {
-  system(("midi_to_str.exe " + midi_path + " --output prompt.txt").c_str());
-  std::ifstream ifs("prompt.txt");
+static bool RunExec(const char *cmd, const char *para, DWORD ms) {
+  SHELLEXECUTEINFO ShExecInfo = {0};
+  ShExecInfo.cbSize = sizeof(SHELLEXECUTEINFO);
+  ShExecInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
+  ShExecInfo.hwnd = NULL;
+  ShExecInfo.lpVerb = NULL;
+  ShExecInfo.lpFile = cmd;
+  ShExecInfo.lpParameters = para;
+  ShExecInfo.lpDirectory = NULL;
+  ShExecInfo.nShow = SW_HIDE;
+  ShExecInfo.hInstApp = NULL;
+  bool ret = ShellExecuteEx(&ShExecInfo);
+  WaitForSingleObject(ShExecInfo.hProcess, ms);
+  return ret;
+}
+
+static void midi_to_str(const char *midi_path, std::string &result) {
+  char cwd[64];
+  _getcwd(cwd, 64);
+  std::cout << "Current Path: " << cwd << std::endl;
+  char cmd[400];
+  snprintf(cmd, sizeof(cmd), "%s --output lib\\fastmodel\\prompt.txt",
+           midi_path);
+  std::cout << "CMD: " << cmd << std::endl;
+  std::ofstream ofs("lib\\fastmodel\\log.txt");
+  ofs << "CMD: " << cmd << std::endl << "Current Path: " << cwd << std::endl;
+  ofs.close();
+  ofs.flush();
+  // system(cmd);
+  // WinExec(cmd, SW_HIDE);
+  RunExec("lib\\fastmodel\\midi_to_str.exe", cmd, INFINITE);
+  std::ifstream ifs("lib\\fastmodel\\prompt.txt");
   std::stringstream buffer;
   buffer << ifs.rdbuf();
   result = buffer.str();
@@ -23,26 +57,33 @@ static void midi_to_str(const std::string &midi_path, std::string &result) {
     result = "<pad>" + result.substr(7);
   if (result.substr(result.length() - 6) == " <end>")
     result = result.substr(0, result.length() - 6);
+  std::cout << "midi_to_str end" << std::endl;
 }
 
-static void str_to_midi(const std::string &result, const std::string &midi_path) {
+static void str_to_midi(const std::string &result, const char *midi_path) {
   std::string result_modified(result);
   result_modified = "<start>" + result_modified.substr(5) + " <end>";
   // std::cout << "Output: " << result_modified << std::endl;
-  std::ofstream ofs("result.txt");
+  std::ofstream ofs("lib\\fastmodel\\result.txt");
   ofs << result_modified;
   ofs.flush();
   ofs.close();
-  // std::cout << "CMD: " << ("str_to_midi.exe --output " + midi_path + " .\\result.txt").c_str() << std::endl;
-  system(("str_to_midi.exe --output " + midi_path + " result.txt").c_str());
+  char cmd[400];
+  snprintf(cmd, sizeof(cmd), "--output %s lib\\fastmodel\\result.txt",
+           midi_path);
+  // WinExec(cmd, SW_HIDE);
+  // system(cmd);
+  RunExec("lib\\fastmodel\\str_to_midi.exe", cmd, INFINITE);
 }
 #else
-static void midi_to_str(const std::string &midi_path, std::string &result) {
-  RV_UNIMPLEMENTED() << "midi_to_str";
+static void midi_to_str(const char *midi_path, std::string &result) {
+  std::cout << "midi_to_str is not implemented on this platform" << std::endl;
+  return;
 }
 
-static void str_to_midi(const std::string &result, const std::string &midi_path) {
-  RV_UNIMPLEMENTED() << "str_to_midi";
+static void str_to_midi(const std::string &result, const char *midi_path) {
+  std::cout << "str_to_midi is not implemented on this platform" << std::endl;
+  return;
 }
 #endif
 
@@ -50,7 +91,7 @@ static void str_to_midi(const std::string &result, const std::string &midi_path)
 extern "C" {
 #endif
 
-rwkv_model_t rwkv_model_create(const char* path, const char* strategy) {
+rwkv_model_t rwkv_model_create(const char *path, const char *strategy) {
   return new rwkv::Model(path, strategy);
 }
 
@@ -67,136 +108,152 @@ rwkv_sampler_t rwkv_sampler_create() {
 }
 
 void rwkv_sampler_set_seed(rwkv_sampler_t sampler_handle, int seed) {
-  static_cast<rwkv::Sampler*>(sampler_handle)->set_seed(seed);
+  static_cast<rwkv::Sampler *>(sampler_handle)->set_seed(seed);
 }
 
-char rwkv_abcmodel_run_with_tokenizer_and_sampler(rwkv_model_t model_handle,
-                    rwkv_tokenizer_t tokenizer_handle,
-                    rwkv_sampler_t sampler_handle,
-                    const char input,
-                    // sampler params 
-                    float temperature, int top_k, float top_p) {
-    rwkv::ABCTokenizer* tokenizer = static_cast<rwkv::ABCTokenizer*>(tokenizer_handle);
-    rwkv::Sampler* sampler = static_cast<rwkv::Sampler*>(sampler_handle);
-    rwkv::Model* model = static_cast<rwkv::Model*>(model_handle);
-    std::vector<int> input_id = tokenizer->encode(std::string(1, input));
-    auto output_tensor = Copy(model->Run(input_id[0]), rwkv::Device::kCPU);
-    int output_id = sampler->Sample(output_tensor, temperature, top_k, top_p);
-    std::string output = tokenizer->decode(output_id);
-    return output[0];
+char rwkv_abcmodel_run_with_tokenizer_and_sampler(
+    rwkv_model_t model_handle, rwkv_tokenizer_t tokenizer_handle,
+    rwkv_sampler_t sampler_handle, const char input,
+    // sampler params
+    float temperature, int top_k, float top_p) {
+  rwkv::ABCTokenizer *tokenizer =
+      static_cast<rwkv::ABCTokenizer *>(tokenizer_handle);
+  rwkv::Sampler *sampler = static_cast<rwkv::Sampler *>(sampler_handle);
+  rwkv::Model *model = static_cast<rwkv::Model *>(model_handle);
+  std::vector<int> input_id = tokenizer->encode(std::string(1, input));
+  auto output_tensor = Copy(model->Run(input_id[0]), rwkv::Device::kCPU);
+  int output_id = sampler->Sample(output_tensor, temperature, top_k, top_p);
+  std::string output = tokenizer->decode(output_id);
+  return output[0];
 }
 
-char rwkv_abcmodel_run_prompt(rwkv_model_t model_handle,
-                    rwkv_tokenizer_t tokenizer_handle,
-                    rwkv_sampler_t sampler_handle,
-                    const char *input,
-                    const int input_length,
-                    // sampler params 
-                    float temperature, int top_k, float top_p) {
-    rwkv::ABCTokenizer* tokenizer = static_cast<rwkv::ABCTokenizer*>(tokenizer_handle);
-    rwkv::Sampler* sampler = static_cast<rwkv::Sampler*>(sampler_handle);
-    rwkv::Model* model = static_cast<rwkv::Model*>(model_handle);
-    std::string input_str(input, input_length);
-    std::vector<int> input_ids = tokenizer->encode(input_str);
-    input_ids.insert(input_ids.begin(), tokenizer->bos_token_id);
-    int output_id;
-    for (int i = 0; i < input_ids.size(); i++) {
-      if (i == (input_ids.size() - 1)) {
-        auto output_tensor = Copy(model->Run(input_ids[i]), rwkv::Device::kCPU);
-        output_id = sampler->Sample(output_tensor, temperature, top_k, top_p);
-      }
-      else {
-        model->Run(input_ids[i]);
-      }
+char rwkv_abcmodel_run_prompt(
+    rwkv_model_t model_handle,
+    rwkv_tokenizer_t tokenizer_handle,
+    rwkv_sampler_t sampler_handle, const char *input,
+    const int input_length,
+    // sampler params
+    float temperature, int top_k, float top_p) {
+  rwkv::ABCTokenizer *tokenizer =
+      static_cast<rwkv::ABCTokenizer *>(tokenizer_handle);
+  rwkv::Sampler *sampler = static_cast<rwkv::Sampler *>(sampler_handle);
+  rwkv::Model *model = static_cast<rwkv::Model *>(model_handle);
+  std::string input_str(input, input_length);
+  std::vector<int> input_ids = tokenizer->encode(input_str);
+  input_ids.insert(input_ids.begin(), tokenizer->bos_token_id);
+  int output_id;
+  for (int i = 0; i < input_ids.size(); i++) {
+    if (i == (input_ids.size() - 1)) {
+      auto output_tensor = Copy(model->Run(input_ids[i]), rwkv::Device::kCPU);
+      output_id = sampler->Sample(output_tensor, temperature, top_k, top_p);
+    } else {
+      model->Run(input_ids[i]);
     }
-    std::string output = tokenizer->decode(output_id);
-    return (char)output[0];
+  }
+  std::string output = tokenizer->decode(output_id);
+  return (char)output[0];
 }
 
 void rwkv_model_clear_states(rwkv_model_t model_handle) {
-  static_cast<rwkv::Model*>(model_handle)->ResetStates();
+  static_cast<rwkv::Model *>(model_handle)->ResetStates();
+  token_ids.clear();
   last_out.clear();
   result.clear();
   occurences.clear();
 }
 
 int rwkv_midimodel_check_stopped(rwkv_tokenizer_t tokenizer_handle) {
-  auto tokenizer = static_cast<rwkv::Tokenizer*>(tokenizer_handle);
-  if (token_ids.empty())
+  auto tokenizer = static_cast<rwkv::Tokenizer *>(tokenizer_handle);
+  if (token_ids.empty()) {
+    std::cout << "rwkv_midimodel_check_stopped: token_ids is empty"
+              << std::endl;
     return 1;
-  return (token_ids[token_ids.size()-1] == tokenizer->eos_token_id()) ? 1 : 0;
+  }
+  return (token_ids[token_ids.size() - 1] == tokenizer->eos_token_id()) ? 1 : 0;
 }
 
-char* rwkv_midimodel_run_with_text_prompt(
-  rwkv_model_t model_handle,
-  rwkv_tokenizer_t tokenizer_handle,
-  rwkv_sampler_t sampler_handle,
-  const char *input_text,
-  const int input_text_length,
-  // sampler params 
-  float temperature, int top_k, float top_p
-) {
-  rwkv::Tokenizer* tokenizer = static_cast<rwkv::Tokenizer*>(tokenizer_handle);
-  rwkv::Sampler* sampler = static_cast<rwkv::Sampler*>(sampler_handle);
-  rwkv::Model* model = static_cast<rwkv::Model*>(model_handle);
+char* rwkv_midimodel_run_with_text_prompt(rwkv_model_t model_handle,
+                                         rwkv_tokenizer_t tokenizer_handle,
+                                         rwkv_sampler_t sampler_handle,
+                                         const char *input_text,
+                                         const int input_text_length,
+                                         // sampler params
+                                         float temperature, int top_k,
+                                         float top_p) {
+  rwkv::Tokenizer *tokenizer = static_cast<rwkv::Tokenizer *>(tokenizer_handle);
+  rwkv::Sampler *sampler = static_cast<rwkv::Sampler *>(sampler_handle);
+  rwkv::Model *model = static_cast<rwkv::Model *>(model_handle);
   result = std::string(input_text, input_text_length);
-
+  // std::cout << "Prompt: " << result << std::endl;
   std::vector<int> input_ids = tokenizer->encode(result);
-  auto output_tensor = Copy(model->Run(input_ids), rwkv::Device::kCPU);
+  int output_id;
+  for (int i = 0; i < input_ids.size(); i++) {
+    if (i == (input_ids.size() - 1)) {
+      auto output_tensor = Copy(model->Run(input_ids[i]), rwkv::Device::kCPU);
+      output_id = sampler->Sample(output_tensor, temperature, top_k, top_p);
+    } else {
+      model->Run(input_ids[i]);
+    }
+  }
+  last_out = tokenizer->decode(output_id);
+  result += " " + last_out;
+  token_ids.push_back(output_id);
+  return (char *)last_out.c_str();
+}
+
+char* rwkv_midimodel_run_prompt_from_file(
+    rwkv_model_t model_handle,
+    rwkv_tokenizer_t tokenizer_handle,
+    rwkv_sampler_t sampler_handle,
+    const char *input_path,
+    const int input_path_length,
+    // sampler params
+    float temperature, int top_k,
+    float top_p) {
+  std::cout << "midi input path: " << input_path << std::endl;
+  std::string str;
+  midi_to_str(input_path, str);
+  return rwkv_midimodel_run_with_text_prompt(model_handle, tokenizer_handle,
+                                      sampler_handle, str.c_str(), str.size(),
+                                      temperature, top_k, top_p);
+}
+
+char* rwkv_midimodel_run_with_tokenizer_and_sampler(
+    rwkv_model_t model_handle, rwkv_tokenizer_t tokenizer_handle,
+    rwkv_sampler_t sampler_handle,
+    // sampler params
+    float temperature, int top_k, float top_p) {
+  rwkv::Tokenizer *tokenizer = static_cast<rwkv::Tokenizer *>(tokenizer_handle);
+  rwkv::Sampler *sampler = static_cast<rwkv::Sampler *>(sampler_handle);
+  rwkv::Model *model = static_cast<rwkv::Model *>(model_handle);
+
+  auto output_tensor =
+      Copy(model->Run(token_ids[token_ids.size() - 1]), rwkv::Device::kCPU);
+  for (const auto &[id, occurence] : occurences) {
+    output_tensor.data_ptr<float>()[id] -= 0.5 * occurence;
+  }
+  if (!token_ids.empty())
+    output_tensor.data_ptr<float>()[0] +=
+        ((int)token_ids.size() - 2000) / 500.0; // not too short, not too long
+  output_tensor.data_ptr<float>()[127] -= 1.;   // avoid "t125"
   int output_id = sampler->Sample(output_tensor, temperature, top_k, top_p);
   last_out = tokenizer->decode(output_id);
   result += " " + last_out;
   token_ids.push_back(output_id);
-  return (char*)last_out.c_str();
+  for (const auto &[id, occurence] : occurences) {
+    occurences[id] *= 0.997;
+  }
+  if (output_id >= 128 || output_id == 127) {
+    occurences[output_id] += 1;
+  } else {
+    occurences[output_id] += 0.3;
+  }
+  return (char *)last_out.c_str();
 }
 
-char* rwkv_midimodel_run_prompt_from_file(rwkv_model_t model_handle,
-  rwkv_tokenizer_t tokenizer_handle,
-  rwkv_sampler_t sampler_handle,
-  const char *input_path,
-  const int input_path_length,
-  // sampler params 
-  float temperature, int top_k, float top_p) {
-  std::string input_path_str(input_path, input_path_length);
-  std::string str;
-  midi_to_str(input_path_str, str);
-  return rwkv_midimodel_run_with_text_prompt(model_handle, tokenizer_handle, sampler_handle, str.c_str(), str.size(), temperature, top_k, top_p);
-}
-
-char* rwkv_midimodel_run_with_tokenizer_and_sampler(rwkv_model_t model_handle,
-                    rwkv_tokenizer_t tokenizer_handle,
-                    rwkv_sampler_t sampler_handle,
-                    // sampler params
-                    float temperature, int top_k, float top_p) {
-    rwkv::Tokenizer* tokenizer = static_cast<rwkv::Tokenizer*>(tokenizer_handle);
-    rwkv::Sampler* sampler = static_cast<rwkv::Sampler*>(sampler_handle);
-    rwkv::Model* model = static_cast<rwkv::Model*>(model_handle);
-    std::vector<int> input_id = tokenizer->encode(last_out);
-    auto output_tensor = Copy(model->Run(input_id[0]), rwkv::Device::kCPU);
-    for (const auto &[id, occurence] : occurences) {
-      output_tensor.data_ptr<float>()[id] -= 0.5 * occurence;
-    }
-    output_tensor.data_ptr<float>()[0] +=
-          (token_ids.size() - 2000) / 500.;                      // not too short, not too long
-      output_tensor.data_ptr<float>()[127] -= 1.; // avoid "t125"
-    int output_id = sampler->Sample(output_tensor, temperature, top_k, top_p);
-    last_out = tokenizer->decode(output_id);
-    result += " " + last_out;
-    token_ids.push_back(output_id);
-    for (const auto &[id, occurence] : occurences) {
-      occurences[id] *= 0.997;
-    }
-    if (output_id >= 128 || output_id == 127) {
-      occurences[output_id] += 1;
-    } else {
-      occurences[output_id] += 0.3;
-    }
-    return (char*)last_out.c_str();
-}
-
-void rwkv_midimodel_save_result_to_midi(const char *midi_path, const int midi_path_length) {
-  std::string midi_path_str(midi_path, midi_path_length);
-  str_to_midi(result, midi_path_str);
+void rwkv_midimodel_save_result_to_midi(const char *midi_path,
+                                        const int midi_path_length) {
+  str_to_midi(result, midi_path);
 }
 
 #ifdef __cplusplus

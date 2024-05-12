@@ -40,7 +40,7 @@ jobs:
     - name: build-arm64
       run: |
         mkdir build-arm64 && cd build-arm64
-        cmake -T v142,host=x64 -A arm64 -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_BUILD_SHARED_LIB=ON ..
+        cmake -T v142,host=x64 -A arm64 -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_ENABLE_QNN=ON -DFR_BUILD_SHARED_LIB=ON ..
         cmake --build . --config ${{env.BUILD_TYPE}} -j4
     - name: package
       run: |
@@ -307,7 +307,7 @@ jobs:
         path: ${{ env.PACKAGENAME }}.zip
 
   build-and-test:
-    needs: [setup, ubuntu-2204, aarch64-android-ndk-28, windows-vs2022]
+    needs: [setup, ubuntu-2204, aarch64-android-ndk-28, windows-vs2022, ios]
     # Use ubuntu 20.04 to build with enough old glibc, so that products can be distributed to more Linux distributions
     runs-on: ubuntu-20.04
 

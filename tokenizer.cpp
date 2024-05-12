@@ -71,9 +71,13 @@ Tokenizer::Tokenizer(std::filesystem::path path, void *asset_manager) {
   if (std::filesystem::is_directory(path)) {
     path /= "tokenizer";
   }
+#ifdef _WIN32
+  const std::vector<uint8_t> data = read_file_to_vector(path.string(), asset_manager);
+  auto unpacker = msgpack::unpack((const char*)data.data(), data.size());
+#else
   const std::string data = read_file(path.string(), asset_manager);
-
   auto unpacker = msgpack::unpack(data.data(), data.size());
+#endif
   auto obj = unpacker.get();
   const std::string type = [&]() -> std::string {
     try {
