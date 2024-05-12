@@ -44,10 +44,12 @@ int Sampler::Sample(const Tensor &logits, float temperature, int top_k,
   }
 
   temperature = std::clamp(temperature, 0.1f, 5.f);
+  if (top_k == 0 || top_k >= logits.numel())
+    top_k = logits.numel();
 
   // softmax (temperature is applied in another place)
-  // auto probs = softmax(logits, 1.f);
-  auto probs = logits;
+  auto probs = softmax(logits, 1.f);
+  // auto probs = logits;
   std::vector<std::pair<int, float>> id_and_probs;
   id_and_probs.reserve(probs.numel());
   for (int i = 0; i < probs.numel(); i++) {
@@ -59,25 +61,6 @@ int Sampler::Sample(const Tensor &logits, float temperature, int top_k,
                    [&](auto p1, auto p2) { return p1.second > p2.second; });
   std::sort(id_and_probs.begin(), id_and_probs.begin() + top_k - 1,
             [&](auto p1, auto p2) { return p1.second > p2.second; });
-
-  auto fast_exp = [](float a) {
-    union {
-        float f;
-        int x;
-    } u;
-    u.x = (int)(12102203 * a + 1064866805);
-    return u.f;
-  };
-
-  float softmax_sum = 0;
-  for (int i = 0; i < top_k; i++) {
-    id_and_probs[i].second = fast_exp(id_and_probs[i].second);
-    softmax_sum += id_and_probs[i].second;
-  }
-
-  for (int i = 0; i < top_k; i++) {
-    id_and_probs[i].second /= softmax_sum;
-  }
 
   int len = top_k;
 
