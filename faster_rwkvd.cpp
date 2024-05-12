@@ -12,6 +12,7 @@ std::string last_out;
 std::vector<int> token_ids;
 std::map<int, float> occurences;
 
+#ifdef _WIN32
 static void midi_to_str(const std::string &midi_path, std::string &result) {
   system(("midi_to_str.exe " + midi_path + " --output prompt.txt").c_str());
   std::ifstream ifs("prompt.txt");
@@ -35,6 +36,15 @@ static void str_to_midi(const std::string &result, const std::string &midi_path)
   // std::cout << "CMD: " << ("str_to_midi.exe --output " + midi_path + " .\\result.txt").c_str() << std::endl;
   system(("str_to_midi.exe --output " + midi_path + " result.txt").c_str());
 }
+#else
+static void midi_to_str(const std::string &midi_path, std::string &result) {
+  RV_UNIMPLEMENTED() << "midi_to_str";
+}
+
+static void str_to_midi(const std::string &result, const std::string &midi_path) {
+  RV_UNIMPLEMENTED() << "str_to_midi";
+}
+#endif
 
 #ifdef __cplusplus
 extern "C" {
