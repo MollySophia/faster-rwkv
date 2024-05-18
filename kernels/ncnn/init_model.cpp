@@ -103,8 +103,13 @@ void init_model(Model *model, Device device, const std::string &_path,
 #else
   {
 #endif
+
+#ifdef _WIN32
     std::wstring wconfig_path = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(config_path);
     std::ifstream config_file(wconfig_path);
+#else
+    std::ifstream config_file(config_path);
+#endif
     if (config_file.good()) {
       std::stringstream ss;
       ss << config_file.rdbuf();
