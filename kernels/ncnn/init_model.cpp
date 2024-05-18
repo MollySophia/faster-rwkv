@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <codecvt>
 #ifdef FR_ENABLE_ANDROID_ASSET
 #include <android/asset_manager.h>
 #endif
@@ -102,7 +103,8 @@ void init_model(Model *model, Device device, const std::string &_path,
 #else
   {
 #endif
-    std::ifstream config_file(config_path);
+    std::wstring wconfig_path = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(config_path);
+    std::ifstream config_file(wconfig_path);
     if (config_file.good()) {
       std::stringstream ss;
       ss << config_file.rdbuf();
@@ -204,8 +206,21 @@ void init_model(Model *model, Device device, const std::string &_path,
         << "File \"" << param_path << "\" does not exist";
     RV_CHECK(file_exists(bin_path))
         << "File \"" << bin_path << "\" does not exist";
+
+#ifdef _WIN32
+    auto param_buffer = std::make_shared<std::vector<uint8_t>>(
+        read_file_to_vector(param_path));
+
+    auto bin_wpath = std::wstring_convert<std::codecvt_utf8<wchar_t>>()
+                         .from_bytes(bin_path);
+    FILE *bin_fp = _wfopen(bin_wpath.c_str(), L"rb");
+
+    RV_CHECK(!net->load_param_mem((const char*)param_buffer->data()));
+    RV_CHECK(!net->load_model(bin_fp));
+#else
     RV_CHECK(!net->load_param(param_path.c_str()));
     RV_CHECK(!net->load_model(bin_path.c_str()));
+#endif
   }
   int input_blob_id;
   std::vector<std::vector<int>> state_ids;

@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <codecvt>
 #ifdef FR_ENABLE_ANDROID_ASSET
 #include <android/asset_manager.h>
 #endif
@@ -13,7 +14,9 @@
 #define LOG_INFO(msg) std::cout << "[INFO] " << msg << std::endl;
 
 inline bool file_exists(const std::string &path) {
-  std::ifstream file(path);
+  std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+  std::ifstream file(converter.from_bytes(path));
+  // std::ifstream file(path);
   return file.good();
 }
 
@@ -42,7 +45,8 @@ inline std::string read_file(const std::string &_path,
   } else {
     const std::string &path = _path;
     RV_CHECK(file_exists(path)) << "File \"" << path << "\" does not exist";
-    std::ifstream file(path);
+    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+    std::ifstream file(converter.from_bytes(path));
     std::stringstream ss;
     ss << file.rdbuf();
     return ss.str();
@@ -54,7 +58,8 @@ inline std::vector<uint8_t> read_file_to_vector(const std::string &_path,
                              void *_asset_manager = nullptr) {
   const std::string &path = _path;
   RV_CHECK(file_exists(path)) << "File \"" << path << "\" does not exist";
-  std::basic_ifstream<uint8_t> stream(path, std::ios::in | std::ios::binary);
+  std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+  std::basic_ifstream<uint8_t> stream(converter.from_bytes(path), std::ios::in | std::ios::binary);
   auto eos = std::istreambuf_iterator<uint8_t>();
   auto buffer = std::vector<uint8_t>(std::istreambuf_iterator<uint8_t>(stream), eos);
   return buffer;
