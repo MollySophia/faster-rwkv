@@ -14,9 +14,12 @@
 #define LOG_INFO(msg) std::cout << "[INFO] " << msg << std::endl;
 
 inline bool file_exists(const std::string &path) {
+#ifdef _WIN32
   std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
   std::ifstream file(converter.from_bytes(path));
-  // std::ifstream file(path);
+#else
+  std::ifstream file(path);
+#endif
   return file.good();
 }
 
@@ -45,8 +48,12 @@ inline std::string read_file(const std::string &_path,
   } else {
     const std::string &path = _path;
     RV_CHECK(file_exists(path)) << "File \"" << path << "\" does not exist";
+#ifdef _WIN32
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
     std::ifstream file(converter.from_bytes(path));
+#else
+    std::ifstream file(path);
+#endif
     std::stringstream ss;
     ss << file.rdbuf();
     return ss.str();
