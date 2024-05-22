@@ -191,6 +191,8 @@ char* rwkv_midimodel_run_with_text_prompt(rwkv_model_t model_handle,
   for (int i = 0; i < input_ids.size(); i++) {
     if (i == (input_ids.size() - 1)) {
       auto output_tensor = Copy(model->Run(input_ids[i]), rwkv::Device::kCPU);
+      output_tensor.data_ptr<float>()[0] -= 4; // ((int)token_ids.size() - 2000) / 500.0
+      output_tensor.data_ptr<float>()[127] -= 1.;   // avoid "t125"
       output_id = sampler->Sample(output_tensor, temperature, top_k, top_p);
     } else {
       model->Run(input_ids[i]);
