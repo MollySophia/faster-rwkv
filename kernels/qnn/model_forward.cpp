@@ -54,7 +54,7 @@ GraphBackendForwardInternal(const Model *model, int id,
   return {output, states};
 }
 
-KernelRegister mtk_model_forward_reg("model_forward", Device::kQNN,
+KernelRegister qnn_model_forward_reg("model_forward", Device::kQNN,
                                       GraphBackendForward<QnnTensorWrapper>);
 
 } // namespace rwkv
