@@ -141,7 +141,7 @@ char rwkv_abcmodel_run_prompt(
   rwkv::Model *model = static_cast<rwkv::Model *>(model_handle);
   std::string input_str(input, input_length);
   std::vector<int> input_ids = tokenizer->encode(input_str);
-  input_ids.insert(input_ids.begin(), tokenizer->bos_token_id);
+  // input_ids.insert(input_ids.begin(), tokenizer->bos_token_id);
   int output_id;
   for (int i = 0; i < input_ids.size(); i++) {
     if (i == (input_ids.size() - 1)) {
