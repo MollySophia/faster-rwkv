@@ -124,6 +124,8 @@ char rwkv_abcmodel_run_with_tokenizer_and_sampler(
   std::vector<int> input_id = tokenizer->encode(std::string(1, input));
   auto output_tensor = Copy(model->Run(input_id[0]), rwkv::Device::kCPU);
   int output_id = sampler->Sample(output_tensor, temperature, top_k, top_p);
+  if (output_id == tokenizer->eos_token_id)
+    return output_id;
   std::string output = tokenizer->decode(output_id);
   return output[0];
 }
