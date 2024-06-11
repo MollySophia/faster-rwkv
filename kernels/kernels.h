@@ -75,6 +75,22 @@ att_seq_v5_2(const Tensor &x, const Tensor &sx, const Tensor &s,
              t_decay, t_first, kw, vw, rw, gw, ow, n_att);
 }
 
+inline std::tuple<Tensor, Tensor, Tensor>
+att_one_v6(const Tensor &x, const Tensor &sx, const Tensor &s,
+            const Tensor &ln_w, const Tensor &ln_b, const Tensor &lx_w,
+            const Tensor &lx_b, const Tensor &x_mix, const Tensor &w_mix,
+            const Tensor &k_mix, const Tensor &v_mix, const Tensor &r_mix,
+            const Tensor &g_mix, const Tensor &tm_w1, const Tensor &tm_w2,
+            const Tensor &td_w1, const Tensor &td_w2, const Tensor &t_decay,
+            const Tensor &t_first, const Tensor &kw, const Tensor &vw,
+            const Tensor &rw, const Tensor &gw, const Tensor &ow) {
+  auto tmp = KernelRegistry::Instance().Get<decltype(att_one_v6) *>(
+      "att_one_v6", x.device());
+  return tmp(x, sx, s, ln_w, ln_b, lx_w, lx_b, x_mix, w_mix, k_mix, v_mix,
+             r_mix, g_mix, tm_w1, tm_w2, td_w1, td_w2, t_decay, t_first, kw,
+             vw, rw, gw, ow);
+}
+
 //         def cuda_ffn_one_fp16(self, x, sx, ln_w, ln_b, k_mix, r_mix, kw, vw,
 //         rw, kmx, krx, kmy, kry, vmx, vrx, vmy, vry, rmx, rrx, rmy, rry):
 inline std::tuple<Tensor, Tensor> ffn(const Tensor &x, const Tensor &sx,
@@ -83,6 +99,16 @@ inline std::tuple<Tensor, Tensor> ffn(const Tensor &x, const Tensor &sx,
                                       const Tensor &kw, const Tensor &vw,
                                       const Tensor &rw) {
   auto tmp = KernelRegistry::Instance().Get<decltype(ffn) *>("ffn", x.device());
+  return tmp(x, sx, ln_w, ln_b, k_mix, r_mix, kw, vw, rw);
+}
+
+inline std::tuple<Tensor, Tensor> ffn_v6(const Tensor &x, const Tensor &sx,
+                                      const Tensor &ln_w, const Tensor &ln_b,
+                                      const Tensor &k_mix, const Tensor &r_mix,
+                                      const Tensor &kw, const Tensor &vw,
+                                      const Tensor &rw) {
+  auto tmp =
+      KernelRegistry::Instance().Get<decltype(ffn) *>("ffn_v6", x.device());
   return tmp(x, sx, ln_w, ln_b, k_mix, r_mix, kw, vw, rw);
 }
 

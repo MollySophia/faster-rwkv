@@ -149,20 +149,44 @@ Tensor ModelForward(Model *model, Device device, int id) {
           mark_as_output(state[1], "output_state_" + std::to_string(i) + "_1");
         }
         param_idx += 15;
+      } else if (model->_version == "6") {
+        std::tie(x, state[0], state[1]) = att_one_v6(
+          x, state[0], state[1], params[param_idx], params[param_idx + 1],
+            params[param_idx + 2], params[param_idx + 3], params[param_idx + 4],
+            params[param_idx + 5], params[param_idx + 6], params[param_idx + 7],
+            params[param_idx + 8], params[param_idx + 9],
+            params[param_idx + 10], params[param_idx + 11],
+            params[param_idx + 12], params[param_idx + 13],
+            params[param_idx + 14], params[param_idx + 15], params[param_idx + 16],
+            params[param_idx + 17], params[param_idx + 18], params[param_idx + 19],
+            params[param_idx + 20]);
+        if (device == Device::kNCNNMeta || device == Device::kONNXMeta) {
+          mark_as_output(state[0], "output_state_" + std::to_string(i) + "_0");
+          mark_as_output(state[1], "output_state_" + std::to_string(i) + "_1");
+        }
+        param_idx += 21;
       } else {
         RV_UNIMPLEMENTED();
       }
     }
     {
       int offset = 4;
-      if (model->_version.substr(0, 1) == "5") {
+      if (model->_version.substr(0, 1) != "4") {
         offset = 2;
       }
 
-      std::tie(x, state[offset]) = ffn(
+      if (model->_version == "6") {
+        std::tie(x, state[offset]) = ffn_v6(
           x, state[offset], params[param_idx], params[param_idx + 1],
           params[param_idx + 2], params[param_idx + 3], params[param_idx + 4],
           params[param_idx + 5], params[param_idx + 6]);
+      } else {
+        std::tie(x, state[offset]) = ffn(
+          x, state[offset], params[param_idx], params[param_idx + 1],
+          params[param_idx + 2], params[param_idx + 3], params[param_idx + 4],
+          params[param_idx + 5], params[param_idx + 6]);
+      }
+
       if (device == Device::kNCNNMeta || device == Device::kONNXMeta) {
         mark_as_output(state[offset], "output_state_" + std::to_string(i) +
                                           "_" + std::to_string(offset));
@@ -170,7 +194,7 @@ Tensor ModelForward(Model *model, Device device, int id) {
       param_idx += 7;
     }
 
-    if (x.dtype() == DType::kFloat16 && (i + 1) % 6 == 0) {
+    if (x.dtype() == DType::kFloat16 && (i + 1) % model->_rescale_layer == 0) {
       scalar_div_(x, 2);
     }
   }

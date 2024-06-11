@@ -37,6 +37,13 @@ def convert_to_fr(input_path, output_path):
             d['n_head'] = n_head
             if(len(w[x].shape) > 1 and w[x].shape[1] > 1):
                 version = max(5.2, version)
+        if 'time_maa' in x:
+            version = max(6, version)
+        if int(version) == 6 and 'time_first' in x:
+            n_head = w[x].shape[0]
+            d['n_head'] = n_head
+
+    d['weights'] = {k.replace('time_maa','time_mix') if 'time_maa' in k else k: v for k, v in d['weights'].items()}
 
     d['version'] = str(version)
     d['n_layer'] = n_layer
@@ -44,6 +51,13 @@ def convert_to_fr(input_path, output_path):
     # weight has been transposed in chatrwkv conversion
     d['n_att'] = w['blocks.0.att.key.weight'].shape[1]
     d['n_ffn'] = w['blocks.0.ffn.key.weight'].shape[1]
+    try:
+        d['rescale_layer'] = w['_rescale_layer']
+        if d['rescale_layer'] == 0:
+            d['rescale_layer'] = 999
+    except:
+        d['rescale_layer'] = 999
+    
 
     def pack(x):
         if isinstance(x, torch.Tensor):

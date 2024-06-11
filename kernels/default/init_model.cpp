@@ -57,13 +57,18 @@ inline void init_model(Model *model, Device device, const std::string &path,
   };
   model->_n_layer = map["n_layer"].as<int>();
   model->_n_embd = map["n_embd"].as<int>();
+  try {
+    model->_rescale_layer = map["rescale_layer"].as<int>();
+  } catch(...) {
+    model->_rescale_layer = 999;
+  }
 
   if (map.find("version") == map.end()) {
     model->_version = "4";
   } else {
     model->_version = map["version"].as<std::string>();
   }
-  if (model->_version.substr(0, 1) == "5") {
+  if (model->_version.substr(0, 1) == "5" || model->_version.substr(0, 1) == "6") {
     model->_head_size = map["n_head"].as<int>();
     model->_n_att = map["n_att"].as<int>();
     model->_n_ffn = map["n_ffn"].as<int>();
@@ -90,22 +95,32 @@ inline void init_model(Model *model, Device device, const std::string &path,
 
     push_param(bbb_pf + "ln1.weight");
     push_param(bbb_pf + "ln1.bias");
-    if (model->_version.substr(0, 1) == "5") {
+    if (model->_version.substr(0, 1) == "5" || model->_version.substr(0, 1) == "6") {
       push_param(att_pf + "ln_x.weight");
       push_param(att_pf + "ln_x.bias");
+    }
+    if (model->_version.substr(0, 1) == "6") {
+      push_param(att_pf + "time_mix_x");
+      push_param(att_pf + "time_mix_w");
     }
     push_param(att_pf + "time_mix_k");
     push_param(att_pf + "time_mix_v");
     push_param(att_pf + "time_mix_r");
-    if (model->_version == "5.1" || model->_version == "5.2") {
+    if (model->_version == "5.1" || model->_version == "5.2" || model->_version.substr(0, 1) == "6") {
       push_param(att_pf + "time_mix_g");
+    }
+    if (model->_version.substr(0, 1) == "6") {
+      push_param(att_pf + "time_mix_w1");
+      push_param(att_pf + "time_mix_w2");
+      push_param(att_pf + "time_decay_w1");
+      push_param(att_pf + "time_decay_w2");
     }
     push_param(att_pf + "time_decay");
     push_param(att_pf + "time_first");
     push_param(att_pf + "key.weight");
     push_param(att_pf + "value.weight");
     push_param(att_pf + "receptance.weight");
-    if (model->_version == "5.1" || model->_version == "5.2") {
+    if (model->_version == "5.1" || model->_version == "5.2" || model->_version.substr(0, 1) == "6") {
       push_param(att_pf + "gate.weight");
     }
     push_param(att_pf + "output.weight");

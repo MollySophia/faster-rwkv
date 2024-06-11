@@ -49,6 +49,7 @@ private:
   int _n_att = 0;
   int _n_ffn = 0;
   int _head_size = 0;
+  int _rescale_layer = 999;
   std::string _version;
   std::any _extra;
   States _states;
