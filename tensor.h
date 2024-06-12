@@ -38,6 +38,7 @@ enum class DType {
   kFloat32,
   kInt32,
   kInt64,
+  kBFloat16,
 };
 using float16 = half_float::half;
 enum class Device {
@@ -48,6 +49,7 @@ enum class Device {
   kNCNN,
   kONNX,
   kQNN,
+  kMTK,
 };
 std::optional<Device> &default_dispatch_device();
 
@@ -69,6 +71,8 @@ inline std::string dtype_to_string(DType dtype) {
     return "fp32";
   } else if (dtype == DType::kFloat16) {
     return "fp16";
+  } else if (dtype == DType::kBFloat16) {
+    return "bf16";
   } else if (dtype == DType::kInt32) {
     return "int32";
   } else if (dtype == DType::kInt64) {
@@ -97,6 +101,7 @@ inline int32_t elem_size(DType dtype) {
   case DType::kInt8:
     return 1;
   case DType::kFloat16:
+  case DType::kBFloat16:
     return 2;
   case DType::kFloat32:
     return 4;

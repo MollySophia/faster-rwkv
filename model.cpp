@@ -12,6 +12,10 @@
 #include <kernels/qnn/include/librwkv-qualcomm.h>
 #include <kernels/qnn/extra.h>
 #endif
+#ifdef FR_ENABLE_MTK
+#include <kernels/mtk/include/rwkv_mtk.h>
+#include <kernels/mtk/extra.h>
+#endif
 #include <fstream>
 #include <iostream>
 #include <msgpack.hpp>
@@ -42,6 +46,8 @@ Model::Model(const std::string &path, const std::string &strategy,
       return Device::kONNX;
     } else if (dev_str == "qnn" || dev_str == "qualcomm") {
       return Device::kQNN;
+    } else if (dev_str == "mtk") {
+      return Device::kMTK;
     } else {
       RV_UNIMPLEMENTED();
     }
@@ -158,9 +164,17 @@ void Model::ResetStates() {
     return;
   }
 #endif
+#ifdef FR_ENABLE_MTK
+  if (_act_device == Device::kMTK) {
+    auto &extra = *std::any_cast<std::shared_ptr<MtkExtra>>(this->extra());
+    neuron_rwkv_reset(extra.neuron_runtime);
+    return;
+  }
+#endif
   _states.clear();
   // TODO:
-  auto device = (_act_device == Device::kNCNN || _act_device == Device::kONNX || _act_device == Device::kQNN) ? Device::kCPU : _act_device;
+  auto device = (_act_device == Device::kNCNN || _act_device == Device::kONNX || _act_device == Device::kQNN || _act_device == Device::kMTK)
+     ? Device::kCPU : _act_device;
   if (this->_version == "4") {
     for (int i = 0; i < _n_layer; i++) {
       _states.push_back({});

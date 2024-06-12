@@ -24,6 +24,7 @@ else()
 endif()
 option(FR_ENABLE_NCNN "Enable NCNN" ON)
 option(FR_ENABLE_QNN "Enable Qualcomm QNN backend" OFF)
+option(FR_ENABLE_MTK "Enable MediaTek NeuronPilot backend" OFF)
 option(FR_BUILD_PYTHON "" OFF)
 if (DEFINED ANDROID_NDK)
     option(FR_BUILD_JNI "" ON)
@@ -116,6 +117,13 @@ if (FR_ENABLE_QNN)
     )
 endif()
 
+if (FR_ENABLE_MTK)
+    set(mtk_kernel_srcs
+        kernels/mtk/init_model.cpp
+        kernels/mtk/model_forward.cpp
+    )
+endif()
+
 if (FR_BUILD_PROTOBUF)
     option(protobuf_BUILD_TESTS "Build tests" OFF)
     option(protobuf_MSVC_STATIC_RUNTIME "" ${FR_USE_MSVC_STATIC_RUNTIME})
@@ -202,6 +210,7 @@ set(INTERNAL_SRC
     ${ncnn_kernel_srcs}
     ${onnx_kernel_srcs}
     ${qnn_kernel_srcs}
+    ${mtk_kernel_srcs}
     )
 
 add_library(faster_rwkv_internal ${INTERNAL_SRC})
@@ -210,6 +219,7 @@ target_link_libraries(faster_rwkv_internal PUBLIC ${ncnn_deps})
 target_include_directories(faster_rwkv_internal PUBLIC ${PROJECT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
 if (FR_ENABLE_QNN)
+    target_compile_definitions(faster_rwkv_internal PUBLIC FR_ENABLE_QNN)
     target_include_directories(faster_rwkv_internal PUBLIC kernels/qnn/include)
     if (WIN32)
         find_library(SHLWAPI Shlwapi.lib) 
@@ -219,6 +229,13 @@ if (FR_ENABLE_QNN)
         target_link_directories(faster_rwkv_internal PUBLIC kernels/qnn/obj/aarch64-android/)
         target_link_libraries(faster_rwkv_internal PUBLIC rwkv-qualcomm)
     endif()
+endif()
+
+if (FR_ENABLE_MTK)
+    target_compile_definitions(faster_rwkv_internal PUBLIC FR_ENABLE_MTK)
+    target_include_directories(faster_rwkv_internal PUBLIC kernels/mtk/include)
+    target_link_directories(faster_rwkv_internal PUBLIC kernels/mtk/obj/aarch64-android/)
+    target_link_libraries(faster_rwkv_internal PUBLIC rwkv_mtk)
 endif()
 
 if (DEFINED ANDROID_NDK)
