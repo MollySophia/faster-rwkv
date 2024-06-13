@@ -1,28 +1,5 @@
 ## Faster RWKV
 
-### CUDA
-
-#### Convert Model
-
-1. Generate a ChatRWKV weight file by `v2/convert_model.py` (in ChatRWKV repo) and strategy `cuda fp16`.
-
-2. Generate a faster-rwkv weight file by `tools/convert_weight.py`. For example, `python3 tools/convert_weight.py RWKV-4-World-CHNtuned-1.5B-v1-20230620-ctx4096-converted-fp16.pth rwkv-4-1.5b-chntuned-fp16.fr`.
-
-#### Build
-
-```
-mkdir build
-cd build
-cmake -DFR_ENABLE_CUDA=ON -DCMAKE_BUILD_TYPE=Release -GNinja ..
-ninja
-```
-
-#### Run
-
-`./chat tokenizer_file_path weight_file_path "cuda fp16"`
-
-For example, `./chat ../tokenizer_model ../rwkv-4-1.5b-chntuned-fp16.fr "cuda fp16"`
-
 ### Android
 
 #### Convert Model
@@ -105,17 +82,20 @@ curl -L -s https://raw.githubusercontent.com/daquexian/faster-rwkv/master/downlo
 ### TODO
 
 - [x] JNI
+- [x] v6 models support (models are published at https://huggingface.co/mollysama/rwkv-mobile-models/tree/main/ncnn)
 - [x] v5 models support (models are published at https://huggingface.co/daquexian/fr-models/tree/main)
 - [x] ABC music models support (models are published at https://huggingface.co/daquexian/fr-models/tree/main)
 - [x] CI
 - [x] ARM NEON int8 (~2x speedup compared to fp16)
 - [x] ARM NEON int4 (>2x speedup compared to fp16)
+- [x] Qualcomm QNN HTP backend support
+- [x] MTK APU backend support
 - [x] MIDI music models support
 - [x] custom initial state support
 - [x] export ONNX
 - [ ] seq mode
     - [x] CUDA
     - [ ] Others
-- [ ] Raven models support
 - [ ] more backends..
 - [ ] simplify model convertion
+- [ ] integrate model convertion of Qualcomm/MTK backends
