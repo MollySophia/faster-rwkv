@@ -48,6 +48,10 @@ void init_model(Model *model, Device device, const std::string &_path,
   };
 
   path = remove_suffix(path, ".dla");
+  path = remove_suffix(path, ".0");
+  path = remove_suffix(path, ".1");
+  path = remove_suffix(path, ".2");
+  path = remove_suffix(path, ".3");
   path = remove_suffix(path, ".config");
   path = remove_suffix(path, ".emb");
 
@@ -127,7 +131,7 @@ void init_model(Model *model, Device device, const std::string &_path,
       model_extra.runtime_options.dlaPaths = {path + ".dla"};
     } else {
       for (int i = 0; i < model_extra.n_chunks; i++) {
-        model_extra.runtime_options.dlaPaths.push_back(path + ".dla." + std::to_string(i));
+        model_extra.runtime_options.dlaPaths.push_back(path + "." + std::to_string(i) + ".dla");
       }
     }
   }
