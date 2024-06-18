@@ -9,8 +9,8 @@ struct QnnExtra {
   rwkv::Shape output_shape;
   std::string model_path;
   std::string model_dir;
+  std::string backend_str;
   bool context_binary;
-  bool inited = false;
 };
 
 class QnnTensorWrapper {

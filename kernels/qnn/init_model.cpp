@@ -165,6 +165,7 @@ void init_model(Model *model, Device device, const std::string &_path,
     model->_n_att = std::stoi(get_value("n_att", "512"));
     model->_n_ffn = std::stoi(get_value("n_ffn", "1792"));
     model_extra.vocab_size = std::stoi(get_value("vocab_size"));
+    model_extra.backend_str = get_value("qnn_backend", "HTP");
   } else { // default config for abcmusic
     if (model_path.find("ABC") == std::string::npos) {
       RV_UNIMPLEMENTED() << "No config file found";
@@ -220,22 +221,39 @@ void init_model(Model *model, Device device, const std::string &_path,
       }
 #else
       if (StatusCode::SUCCESS != QnnRwkvBackendCreateWithContext(&model_extra.backend, &model_extra.modelHandle, model_path, "libQnnHtp.so", "libQnnSystem.so")) {
-        if (StatusCode::SUCCESS != QnnRwkvBackendCreateWithContext(&model_extra.backend, &model_extra.modelHandle, model_path, "libQnnGpu.so", "libQnnSystem.so")) {
-          RV_UNIMPLEMENTED() << "QnnRwkvBackendCreateWithContext failed";
-        }
+        RV_UNIMPLEMENTED() << "QnnRwkvBackendCreateWithContext failed";
       }
 #endif
     }
   } else {
 #ifdef _WIN32
-      if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, "QnnHtp.dll")) {
+      std::string backend_lib;
+      if (model_extra.backend_str == "HTP") {
+        backend_lib = "QnnHtp.dll";
+      } else if (model_extra.backend_str == "GPU") {
+        backend_lib = "QnnGpu.dll";
+      } else if (model_extra.backend_str == "CPU") {
+        backend_lib = "QnnCpu.dll";
+      } else {
+        RV_UNIMPLEMENTED() << "unsupported backend: " << model_extra.backend_str;
+      }
+
+      if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib)) {
           RV_UNIMPLEMENTED() << "QnnRwkvBackendCreate failed";
       }
 #else
-      if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, "libQnnHtp.so")) {
-        if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, "libQnnGpu.so")) {
-          RV_UNIMPLEMENTED() << "QnnRwkvBackendCreate failed";
-        }
+      std::string backend_lib;
+      if (model_extra.backend_str == "HTP") {
+        backend_lib = "libQnnHtp.so";
+      } else if (model_extra.backend_str == "GPU") {
+        backend_lib = "libQnnGpu.so";
+      } else if (model_extra.backend_str == "CPU") {
+        backend_lib = "libQnnCpu.so";
+      } else {
+        RV_UNIMPLEMENTED() << "unsupported backend: " << model_extra.backend_str;
+      }
+      if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib)) {
+        RV_UNIMPLEMENTED() << "QnnRwkvBackendCreate failed";
       }
 #endif
   }

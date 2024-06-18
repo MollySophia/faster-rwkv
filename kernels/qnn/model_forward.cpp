@@ -29,15 +29,8 @@ GraphBackendForwardInternal(const Model *model, int id,
                             std::vector<std::vector<QnnTensorWrapper>> &&states) {
   auto &extra = *std::any_cast<std::shared_ptr<QnnExtra>>(model->extra());
 
-  // if (model->version() == "6")
-  //   QnnRwkvCopyStatesInPlace_v6(extra.backend);
-  // else
-  // auto start = std::chrono::system_clock::now();
   QnnRwkvCopyStatesInPlace(extra.backend);
   QnnRwkvExecute(extra.backend, id);
-  // auto end = std::chrono::system_clock::now();
-  // auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-  // std::cout << "copy + execution duration: " << duration_us << " us" << std::endl;
 
   if (extra.output_shape.empty()) {
     std::vector<size_t> output_shape;
