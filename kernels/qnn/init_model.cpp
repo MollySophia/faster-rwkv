@@ -41,6 +41,7 @@ void init_model(Model *model, Device device, const std::string &_path,
     RV_CHECK(extra.has_value());
   }
 #endif
+  std::string library_path;
 
 #ifndef _WIN32
 #ifdef FR_ENABLE_ANDROID_ASSET
@@ -53,10 +54,12 @@ void init_model(Model *model, Device device, const std::string &_path,
   {
     if (path.find_last_of(":") != std::string::npos) {
       setenv("ADSP_LIBRARY_PATH", path.substr(path.find_last_of(":") + 1).c_str(), 1);
+      library_path = path.substr(path.find_last_of(":") + 1);
       path = path.substr(0, path.find_last_of(":"));
     } else {
       const auto model_dir = path.substr(0, path.find_last_of("/") + 1);
       setenv("ADSP_LIBRARY_PATH", model_dir.c_str(), 1);
+      library_path = model_dir;
     }
   }
 #endif
@@ -251,6 +254,9 @@ void init_model(Model *model, Device device, const std::string &_path,
         backend_lib = "libQnnCpu.so";
       } else {
         RV_UNIMPLEMENTED() << "unsupported backend: " << model_extra.backend_str;
+      }
+      if (!library_path.empty()) {
+        backend_lib = library_path + "/" + backend_lib;
       }
       if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib)) {
         RV_UNIMPLEMENTED() << "QnnRwkvBackendCreate failed";
