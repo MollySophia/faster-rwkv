@@ -189,6 +189,78 @@ char rwkv_abcmodel_run_prompt(
   return (char)output[0];
 }
 
+const char* rwkv_chatmodel_eval_single(
+    rwkv_model_t model_handle, rwkv_tokenizer_t tokenizer_handle,
+    rwkv_sampler_t sampler_handle,
+    const char *input,
+    // sampler params
+    float temperature, int top_k, float top_p) {
+  rwkv::Tokenizer *tokenizer =
+      static_cast<rwkv::Tokenizer *>(tokenizer_handle);
+  std::vector<int> input_id = tokenizer->encode(std::string(input));
+  int output_id;
+#ifdef FR_ENABLE_WEBRWKV
+  if (is_webrwkv) {
+    std::vector<uint16_t> input_ids_u16 = std::vector<uint16_t>(input_id.begin(), input_id.end());
+    output_id = (int)infer(input_ids_u16.data(), input_ids_u16.size(), {temperature, top_p, static_cast<uintptr_t>(top_k)});
+  } else {
+#else
+  {
+#endif
+    rwkv::Sampler *sampler = static_cast<rwkv::Sampler *>(sampler_handle);
+    rwkv::Model *model = static_cast<rwkv::Model *>(model_handle);
+    auto output_tensor = Copy(model->Run(input_id[0]), rwkv::Device::kCPU);
+    output_id = sampler->Sample(output_tensor, temperature, top_k, top_p);
+  }
+  std::string output = tokenizer->decode(output_id);
+  return output.c_str();
+}
+
+const char* rwkv_chatmodel_eval_sequence(
+    rwkv_model_t model_handle,
+    rwkv_tokenizer_t tokenizer_handle,
+    rwkv_sampler_t sampler_handle,
+    const char *input,
+    // sampler params
+    float temperature, int top_k, float top_p) {
+  rwkv::ABCTokenizer *tokenizer =
+      static_cast<rwkv::ABCTokenizer *>(tokenizer_handle);
+  std::string input_str(input);
+  std::vector<int> input_ids = tokenizer->encode(input_str);
+  int output_id;
+#ifdef FR_ENABLE_WEBRWKV
+  if (is_webrwkv) {
+    std::vector<uint16_t> input_ids_u16 = std::vector<uint16_t>(input_ids.begin(), input_ids.end());
+    output_id = (int)infer(input_ids_u16.data(), input_ids_u16.size(), {temperature, top_p, static_cast<uintptr_t>(top_k)});
+  } else {
+#else
+  {
+#endif
+    rwkv::Sampler *sampler = static_cast<rwkv::Sampler *>(sampler_handle);
+    rwkv::Model *model = static_cast<rwkv::Model *>(model_handle);
+    for (int i = 0; i < input_ids.size(); i++) {
+      if (i == (input_ids.size() - 1)) {
+        auto output_tensor = Copy(model->Run(input_ids[i]), rwkv::Device::kCPU);
+        output_id = sampler->Sample(output_tensor, temperature, top_k, top_p);
+      } else {
+        model->Run(input_ids[i]);
+      }
+    }
+  }
+  std::string output = tokenizer->decode(output_id);
+  return output.c_str();
+}
+
+int rwkv_model_load_states(rwkv_model_t model_handle, const char *path) {
+  try {
+    rwkv::Model *model = static_cast<rwkv::Model *>(model_handle);
+    model->LoadStateFile(std::string(path));
+  } catch(...) {
+    return 1;
+  }
+  return 0;
+}
+
 void rwkv_model_clear_states(rwkv_model_t model_handle) {
 #ifdef FR_ENABLE_WEBRWKV
   if (is_webrwkv) {
@@ -299,6 +371,11 @@ char* rwkv_midimodel_run_with_tokenizer_and_sampler(
 void rwkv_midimodel_save_result_to_midi(const char *midi_path,
                                         const int midi_path_length) {
   str_to_midi(result, midi_path);
+}
+
+void rwkv_qualcomm_save_context(rwkv_model_t model_handle, const char *path) {
+  // TODO
+  return;
 }
 
 #ifdef __cplusplus

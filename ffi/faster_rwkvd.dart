@@ -177,6 +177,93 @@ class faster_rwkvd {
           int Function(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, int,
               double, int, double)>();
 
+  ffi.Pointer<ffi.Char> rwkv_chatmodel_eval_single(
+    rwkv_model_t model_handle,
+    rwkv_tokenizer_t tokenizer_handle,
+    rwkv_sampler_t sampler_handle,
+    ffi.Pointer<ffi.Char> input,
+    double temperature,
+    int top_k,
+    double top_p,
+  ) {
+    return _rwkv_chatmodel_eval_single(
+      model_handle,
+      tokenizer_handle,
+      sampler_handle,
+      input,
+      temperature,
+      top_k,
+      top_p,
+    );
+  }
+
+  late final _rwkv_chatmodel_eval_singlePtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(
+              rwkv_model_t,
+              rwkv_tokenizer_t,
+              rwkv_sampler_t,
+              ffi.Pointer<ffi.Char>,
+              ffi.Float,
+              ffi.Int,
+              ffi.Float)>>('rwkv_chatmodel_eval_single');
+  late final _rwkv_chatmodel_eval_single =
+      _rwkv_chatmodel_eval_singlePtr.asFunction<
+          ffi.Pointer<ffi.Char> Function(rwkv_model_t, rwkv_tokenizer_t,
+              rwkv_sampler_t, ffi.Pointer<ffi.Char>, double, int, double)>();
+
+  ffi.Pointer<ffi.Char> rwkv_chatmodel_eval_sequence(
+    rwkv_model_t model_handle,
+    rwkv_tokenizer_t tokenizer_handle,
+    rwkv_sampler_t sampler_handle,
+    ffi.Pointer<ffi.Char> input,
+    double temperature,
+    int top_k,
+    double top_p,
+  ) {
+    return _rwkv_chatmodel_eval_sequence(
+      model_handle,
+      tokenizer_handle,
+      sampler_handle,
+      input,
+      temperature,
+      top_k,
+      top_p,
+    );
+  }
+
+  late final _rwkv_chatmodel_eval_sequencePtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(
+              rwkv_model_t,
+              rwkv_tokenizer_t,
+              rwkv_sampler_t,
+              ffi.Pointer<ffi.Char>,
+              ffi.Float,
+              ffi.Int,
+              ffi.Float)>>('rwkv_chatmodel_eval_sequence');
+  late final _rwkv_chatmodel_eval_sequence =
+      _rwkv_chatmodel_eval_sequencePtr.asFunction<
+          ffi.Pointer<ffi.Char> Function(rwkv_model_t, rwkv_tokenizer_t,
+              rwkv_sampler_t, ffi.Pointer<ffi.Char>, double, int, double)>();
+
+  int rwkv_model_load_states(
+    rwkv_model_t model_handle,
+    ffi.Pointer<ffi.Char> path,
+  ) {
+    return _rwkv_model_load_states(
+      model_handle,
+      path,
+    );
+  }
+
+  late final _rwkv_model_load_statesPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Int Function(
+              rwkv_model_t, ffi.Pointer<ffi.Char>)>>('rwkv_model_load_states');
+  late final _rwkv_model_load_states = _rwkv_model_load_statesPtr
+      .asFunction<int Function(rwkv_model_t, ffi.Pointer<ffi.Char>)>();
+
   void rwkv_model_clear_states(
     rwkv_model_t model_handle,
   ) {
@@ -344,6 +431,23 @@ class faster_rwkvd {
   late final _rwkv_midimodel_save_result_to_midi =
       _rwkv_midimodel_save_result_to_midiPtr
           .asFunction<void Function(ffi.Pointer<ffi.Char>, int)>();
+
+  void rwkv_qualcomm_save_context(
+    rwkv_model_t model_handle,
+    ffi.Pointer<ffi.Char> path,
+  ) {
+    return _rwkv_qualcomm_save_context(
+      model_handle,
+      path,
+    );
+  }
+
+  late final _rwkv_qualcomm_save_contextPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(rwkv_model_t,
+              ffi.Pointer<ffi.Char>)>>('rwkv_qualcomm_save_context');
+  late final _rwkv_qualcomm_save_context = _rwkv_qualcomm_save_contextPtr
+      .asFunction<void Function(rwkv_model_t, ffi.Pointer<ffi.Char>)>();
 }
 
 typedef rwkv_model_t = ffi.Pointer<ffi.Void>;

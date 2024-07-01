@@ -65,6 +65,23 @@ char rwkv_abcmodel_run_with_tokenizer_and_sampler(rwkv_model_t model_handle,
                     // sampler params 
                     float temperature, int top_k, float top_p);
 
+const char* rwkv_chatmodel_eval_single(rwkv_model_t model_handle,
+                    rwkv_tokenizer_t tokenizer_handle,
+                    rwkv_sampler_t sampler_handle,
+                    const char *input,
+                    // sampler params 
+                    float temperature, int top_k, float top_p);
+
+
+const char* rwkv_chatmodel_eval_sequence(rwkv_model_t model_handle,
+                    rwkv_tokenizer_t tokenizer_handle,
+                    rwkv_sampler_t sampler_handle,
+                    const char *input,
+                    // sampler params 
+                    float temperature, int top_k, float top_p);
+
+int rwkv_model_load_states(rwkv_model_t model_handle, const char *path);
+
 void rwkv_model_clear_states(rwkv_model_t model_handle);
 
 int rwkv_midimodel_check_stopped(rwkv_tokenizer_t tokenizer_handle);
@@ -96,6 +113,8 @@ char* rwkv_midimodel_run_with_tokenizer_and_sampler(rwkv_model_t model_handle,
 
 
 void rwkv_midimodel_save_result_to_midi(const char *midi_path, const int midi_path_length);
+
+void rwkv_qualcomm_save_context(rwkv_model_t model_handle, const char *path);
 
 #ifdef __cplusplus
 }
