@@ -100,7 +100,10 @@ rwkv_model_t rwkv_model_create(const char *path, const char *strategy) {
   if (std::string(strategy).substr(0, 6) == "webgpu") {
     is_webrwkv = true;
     init(time(NULL));
-    load(path, 0, 0);
+    if (std::string(path).find("ABC") != std::string::npos)
+      load_with_rescale(path, 32, 32, 999);
+    else
+      load(path, 32, 32);
     return nullptr;
   } else {
 #else
