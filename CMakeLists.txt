@@ -340,6 +340,9 @@ if (FR_BUILD_EXECUTABLE)
 
     add_executable(midi_music midi_music.cpp)
     target_link_libraries(midi_music faster_rwkv)
+
+    add_executable(eval_text eval_text.cpp)
+    target_link_libraries(eval_text faster_rwkv)
 endif()
 
 if (FR_ENABLE_ONNX_EXPORTING)
