@@ -152,6 +152,26 @@ void Model::LoadStateFile(const std::string &path, void* asset_manager) {
       _states[i][j] = new_state;
     }
   }
+
+#ifdef FR_ENABLE_QNN
+  if (_act_device == Device::kQNN) {
+    QnnRwkvBackend_t _backend;
+    auto &extra = *std::any_cast<std::shared_ptr<QnnExtra>>(this->extra());
+    _backend = extra.backend;
+    std::vector<std::vector<std::vector<float>>> states_qnn;
+    for (int i = 0; i < _states.size(); i++) {
+      states_qnn.push_back({});
+      for (int j = 0; j < _states[i].size(); j++) {
+        auto &state = _states[i][j];
+        std::vector<float> state_data(state.numel());
+        memcpy(state_data.data(), state.data_ptr(), state.numel() * state.elem_size());
+        states_qnn.back().push_back(state_data);
+      }
+    }
+    QnnRwkvSetStates(_backend, states_qnn);
+    return;
+  }
+#endif
 }
 
 void Model::ResetStates() {
@@ -161,14 +181,12 @@ void Model::ResetStates() {
     auto &extra = *std::any_cast<std::shared_ptr<QnnExtra>>(this->extra());
     _backend = extra.backend;
     QnnRwkvResetStates(_backend);
-    return;
   }
 #endif
 #ifdef FR_ENABLE_MTK
   if (_act_device == Device::kMTK) {
     auto &extra = *std::any_cast<std::shared_ptr<MtkExtra>>(this->extra());
     neuron_rwkv_reset(extra.neuron_runtime);
-    return;
   }
 #endif
   _states.clear();
