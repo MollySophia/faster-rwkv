@@ -65,18 +65,10 @@ char rwkv_abcmodel_run_with_tokenizer_and_sampler(rwkv_model_t model_handle,
                     // sampler params 
                     float temperature, int top_k, float top_p);
 
-const char* rwkv_chatmodel_eval_single(rwkv_model_t model_handle,
+char* rwkv_chatmodel_eval(rwkv_model_t model_handle,
                     rwkv_tokenizer_t tokenizer_handle,
                     rwkv_sampler_t sampler_handle,
-                    const char *input,
-                    // sampler params 
-                    float temperature, int top_k, float top_p);
-
-
-const char* rwkv_chatmodel_eval_sequence(rwkv_model_t model_handle,
-                    rwkv_tokenizer_t tokenizer_handle,
-                    rwkv_sampler_t sampler_handle,
-                    const char *input,
+                    char *input,
                     // sampler params 
                     float temperature, int top_k, float top_p);
 
