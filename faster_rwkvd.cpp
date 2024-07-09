@@ -128,7 +128,8 @@ char* rwkv_chatmodel_eval(
     rwkv_sampler_t sampler_handle,
     char *input,
     // sampler params
-    float temperature, int top_k, float top_p) {
+    float temperature, int top_k, float top_p,
+    float presence_penalty, float frequency_penalty, float penalty_decay) {
   rwkv::Tokenizer *tokenizer =
       static_cast<rwkv::Tokenizer *>(tokenizer_handle);
   std::vector<int> input_id = tokenizer->encode(std::string(input));
@@ -144,8 +145,14 @@ char* rwkv_chatmodel_eval(
     rwkv::Sampler *sampler = static_cast<rwkv::Sampler *>(sampler_handle);
     rwkv::Model *model = static_cast<rwkv::Model *>(model_handle);
     auto output_tensor = Copy(model->Run(input_id), rwkv::Device::kCPU);
+    for (auto &[id, occurence] : occurences) {
+      output_tensor.data_ptr<float>()[id] -=
+          frequency_penalty * occurence + presence_penalty;
+      occurence *= penalty_decay;
+    }
 
     output_id = sampler->Sample(output_tensor, temperature, top_k, top_p);
+    occurences[output_id]++;
   }
   last_out = tokenizer->decode(output_id);
   return (char*)last_out.c_str();

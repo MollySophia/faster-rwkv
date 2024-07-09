@@ -185,6 +185,9 @@ class faster_rwkvd {
     double temperature,
     int top_k,
     double top_p,
+    double presence_penalty,
+    double frequency_penalty,
+    double penalty_decay,
   ) {
     return _rwkv_chatmodel_eval(
       model_handle,
@@ -194,6 +197,9 @@ class faster_rwkvd {
       temperature,
       top_k,
       top_p,
+      presence_penalty,
+      frequency_penalty,
+      penalty_decay,
     );
   }
 
@@ -206,10 +212,22 @@ class faster_rwkvd {
               ffi.Pointer<ffi.Char>,
               ffi.Float,
               ffi.Int,
+              ffi.Float,
+              ffi.Float,
+              ffi.Float,
               ffi.Float)>>('rwkv_chatmodel_eval');
   late final _rwkv_chatmodel_eval = _rwkv_chatmodel_evalPtr.asFunction<
-      ffi.Pointer<ffi.Char> Function(rwkv_model_t, rwkv_tokenizer_t,
-          rwkv_sampler_t, ffi.Pointer<ffi.Char>, double, int, double)>();
+      ffi.Pointer<ffi.Char> Function(
+          rwkv_model_t,
+          rwkv_tokenizer_t,
+          rwkv_sampler_t,
+          ffi.Pointer<ffi.Char>,
+          double,
+          int,
+          double,
+          double,
+          double,
+          double)>();
 
   int rwkv_model_load_states(
     rwkv_model_t model_handle,

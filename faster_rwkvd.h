@@ -70,7 +70,9 @@ char* rwkv_chatmodel_eval(rwkv_model_t model_handle,
                     rwkv_sampler_t sampler_handle,
                     char *input,
                     // sampler params 
-                    float temperature, int top_k, float top_p);
+                    float temperature, int top_k, float top_p,
+                    // penalty params
+                    float presence_penalty, float frequency_penalty, float penalty_decay);
 
 int rwkv_model_load_states(rwkv_model_t model_handle, const char *path);
 
