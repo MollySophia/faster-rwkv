@@ -264,8 +264,27 @@ void init_model(Model *model, Device device, const std::string &_path,
       if (!library_path.empty()) {
         backend_lib = library_path + "/" + backend_lib;
       }
+
+#ifdef FR_ENABLE_ANDROID_ASSET
+      __android_log_print(ANDROID_LOG_INFO, TAG, "Trying qualcomm %s backend", backend_lib.c_str());
+#endif
       if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib)) {
-        RV_UNIMPLEMENTED() << "QnnRwkvBackendCreate failed";
+        if (model_extra.backend_str == "HTP") {
+          backend_lib = library_path + "/libQnnGpu.so";
+#ifdef FR_ENABLE_ANDROID_ASSET
+          __android_log_print(ANDROID_LOG_INFO, TAG, "Trying qualcomm %s backend", backend_lib.c_str());
+#endif
+          if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib)) {
+            backend_lib = library_path + "/libQnnCpu.so";
+#ifdef FR_ENABLE_ANDROID_ASSET
+          __android_log_print(ANDROID_LOG_INFO, TAG, "Trying qualcomm %s backend", backend_lib.c_str());
+#endif
+            if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib)) {
+              RV_UNIMPLEMENTED() << "QnnRwkvBackendCreate failed";
+            }
+          }
+        } else
+          RV_UNIMPLEMENTED() << "QnnRwkvBackendCreate failed";
       }
 #endif
   }
