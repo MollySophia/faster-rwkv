@@ -374,7 +374,7 @@ jobs:
       with:
         name: export_ncnn
         path: |
-          build/export_ncnn
+          build/tools/export_ncnn
 
     - name: Run C++ tests
       # Execute tests defined by the CMake configuration.
@@ -385,7 +385,7 @@ jobs:
 
     - name: Convert the v5 ABC model to ncnn for ABC ppl test
       run: |
-        ${{github.workspace}}/build/export_ncnn ${{env.FR_MODEL_DIR}}/RWKV-5-ABC-82M-v1-20230901-ctx1024-fp32.fr ${{env.FR_MODEL_DIR}}/RWKV-5-ABC-82M-v1-20230901-ctx1024-ncnn fp16
+        ${{github.workspace}}/build/tools/export_ncnn ${{env.FR_MODEL_DIR}}/RWKV-5-ABC-82M-v1-20230901-ctx1024-fp32.fr ${{env.FR_MODEL_DIR}}/RWKV-5-ABC-82M-v1-20230901-ctx1024-ncnn fp16
 
     - name: Run ABC ppl test
       run: |
@@ -433,9 +433,9 @@ jobs:
 
     - name: Rename Android binaries to upload
       run: |
-        mv build-android-aar/chat build-android-aar/chat-android
-        mv build-android-aar/abc_music build-android-aar/abc_music-android
-        mv build-android-aar/midi_music build-android-aar/midi_music-android
+        mv build-android-aar/examples/chat build-android-aar/chat-android
+        mv build-android-aar/examples/abc_music build-android-aar/abc_music-android
+        mv build-android-aar/examples/midi_music build-android-aar/midi_music-android
 
     - name: Upload Android binaries
       uses: actions/upload-artifact@v3
@@ -479,7 +479,7 @@ jobs:
         prerelease: true
         title: "Development Build"
         files: |
-          build/export_ncnn
+          build/tools/export_ncnn
           aar/java/faster-rwkv-java/build/outputs/aar/faster-rwkv-java-release.aar
           build-android-aar/chat-android
           build-android-aar/abc_music-android
@@ -496,7 +496,7 @@ jobs:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         prerelease: false
         files: |
-          build/export_ncnn
+          build/tools/export_ncnn
           aar/java/faster-rwkv-java/build/outputs/aar/faster-rwkv-java-release.aar
           build-android-aar/chat-android
           build-android-aar/abc_music-android

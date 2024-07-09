@@ -56,6 +56,7 @@ int main(int argc, char **argv) {
   rwkv_sampler_t (*sampler_create)();
   char (*model_run)(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, const char, float, int, float);
   char (*model_run_prompt)(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, const char*, const int, float, int, float);
+  void (*clear_states)(rwkv_model_t);
 
 #ifdef _WIN32
   model_create = (rwkv_model_t (*)(const char*, const char*))GetProcAddress(handle, "rwkv_model_create");
@@ -65,6 +66,7 @@ int main(int argc, char **argv) {
       handle, "rwkv_abcmodel_run_with_tokenizer_and_sampler");
   model_run_prompt = (char (*)(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, const char*, const int, float, int, float))GetProcAddress(
       handle, "rwkv_abcmodel_run_prompt");
+  clear_states = (void (*)(rwkv_model_t))GetProcAddress(handle, "rwkv_model_clear_states");
   if (model_create == NULL || tokenizer_create == NULL || sampler_create == NULL || model_run == NULL) {
     std::cerr << "Cannot load symbol: " << GetLastError() << std::endl;
     return 1;
@@ -85,6 +87,9 @@ int main(int argc, char **argv) {
   model_run_prompt = (char (*)(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, const char*, const int, float, int, float))dlsym(handle, "rwkv_abcmodel_run_prompt");
   if(!model_run_prompt)
     CHECK();
+  clear_states = (void (*)(rwkv_model_t))dlsym(handle, "rwkv_model_clear_states");
+  if(!clear_states)
+    CHECK();
 #endif
 
   rwkv_model_t model = model_create(argv[1], argv[2]);
@@ -101,7 +106,7 @@ int main(int argc, char **argv) {
   static const int N_TRIAL = 1;
   for (int t = 0; t < N_TRIAL; t++) {
     // IMPORTANT: clear states before each round of generation
-    rwkv_model_clear_states(model);
+    clear_states(model);
     std::string result = input;
     auto start = std::chrono::system_clock::now();
 

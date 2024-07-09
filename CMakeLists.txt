@@ -317,9 +317,6 @@ if (FR_BUILD_SHARED_LIB)
 endif()
 
 if (FR_BUILD_EXECUTABLE)
-    add_executable(export_ncnn export_ncnn.cpp)
-    target_link_libraries(export_ncnn faster_rwkv)
-
     option(BENCHMARK_ENABLE_TESTING "Enable testing of the benchmark library." OFF)
     option(BENCHMARK_ENABLE_GTEST_TESTS "Enable building the unit tests which depend on gtest" OFF)
     FetchContent_Declare(
@@ -331,18 +328,6 @@ if (FR_BUILD_EXECUTABLE)
     FetchContent_MakeAvailable(benchmark)
     add_executable(bench_model bench_model.cpp)
     target_link_libraries(bench_model benchmark::benchmark faster_rwkv)
-
-    add_executable(chat chat.cpp)
-    target_link_libraries(chat faster_rwkv)
-
-    add_executable(abc_music abc_music.cpp)
-    target_link_libraries(abc_music faster_rwkv)
-
-    add_executable(midi_music midi_music.cpp)
-    target_link_libraries(midi_music faster_rwkv)
-
-    add_executable(eval_text eval_text.cpp)
-    target_link_libraries(eval_text faster_rwkv)
 endif()
 
 if (FR_ENABLE_ONNX_EXPORTING)
@@ -359,7 +344,9 @@ endif()
 
 if (FR_BUILD_EXECUTABLE)
     add_subdirectory(tools)
+    add_subdirectory(examples)
 endif()
+
 if(FR_ENABLE_TESTS)
     add_subdirectory(tests)
 endif()
