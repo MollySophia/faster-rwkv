@@ -177,7 +177,7 @@ class faster_rwkvd {
           int Function(rwkv_model_t, rwkv_tokenizer_t, rwkv_sampler_t, int,
               double, int, double)>();
 
-  ffi.Pointer<ffi.Char> rwkv_chatmodel_eval_single(
+  ffi.Pointer<ffi.Char> rwkv_chatmodel_eval(
     rwkv_model_t model_handle,
     rwkv_tokenizer_t tokenizer_handle,
     rwkv_sampler_t sampler_handle,
@@ -186,7 +186,7 @@ class faster_rwkvd {
     int top_k,
     double top_p,
   ) {
-    return _rwkv_chatmodel_eval_single(
+    return _rwkv_chatmodel_eval(
       model_handle,
       tokenizer_handle,
       sampler_handle,
@@ -197,7 +197,7 @@ class faster_rwkvd {
     );
   }
 
-  late final _rwkv_chatmodel_eval_singlePtr = _lookup<
+  late final _rwkv_chatmodel_evalPtr = _lookup<
       ffi.NativeFunction<
           ffi.Pointer<ffi.Char> Function(
               rwkv_model_t,
@@ -206,46 +206,10 @@ class faster_rwkvd {
               ffi.Pointer<ffi.Char>,
               ffi.Float,
               ffi.Int,
-              ffi.Float)>>('rwkv_chatmodel_eval_single');
-  late final _rwkv_chatmodel_eval_single =
-      _rwkv_chatmodel_eval_singlePtr.asFunction<
-          ffi.Pointer<ffi.Char> Function(rwkv_model_t, rwkv_tokenizer_t,
-              rwkv_sampler_t, ffi.Pointer<ffi.Char>, double, int, double)>();
-
-  ffi.Pointer<ffi.Char> rwkv_chatmodel_eval_sequence(
-    rwkv_model_t model_handle,
-    rwkv_tokenizer_t tokenizer_handle,
-    rwkv_sampler_t sampler_handle,
-    ffi.Pointer<ffi.Char> input,
-    double temperature,
-    int top_k,
-    double top_p,
-  ) {
-    return _rwkv_chatmodel_eval_sequence(
-      model_handle,
-      tokenizer_handle,
-      sampler_handle,
-      input,
-      temperature,
-      top_k,
-      top_p,
-    );
-  }
-
-  late final _rwkv_chatmodel_eval_sequencePtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Pointer<ffi.Char> Function(
-              rwkv_model_t,
-              rwkv_tokenizer_t,
-              rwkv_sampler_t,
-              ffi.Pointer<ffi.Char>,
-              ffi.Float,
-              ffi.Int,
-              ffi.Float)>>('rwkv_chatmodel_eval_sequence');
-  late final _rwkv_chatmodel_eval_sequence =
-      _rwkv_chatmodel_eval_sequencePtr.asFunction<
-          ffi.Pointer<ffi.Char> Function(rwkv_model_t, rwkv_tokenizer_t,
-              rwkv_sampler_t, ffi.Pointer<ffi.Char>, double, int, double)>();
+              ffi.Float)>>('rwkv_chatmodel_eval');
+  late final _rwkv_chatmodel_eval = _rwkv_chatmodel_evalPtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(rwkv_model_t, rwkv_tokenizer_t,
+          rwkv_sampler_t, ffi.Pointer<ffi.Char>, double, int, double)>();
 
   int rwkv_model_load_states(
     rwkv_model_t model_handle,
@@ -277,160 +241,6 @@ class faster_rwkvd {
           'rwkv_model_clear_states');
   late final _rwkv_model_clear_states =
       _rwkv_model_clear_statesPtr.asFunction<void Function(rwkv_model_t)>();
-
-  int rwkv_midimodel_check_stopped(
-    rwkv_tokenizer_t tokenizer_handle,
-  ) {
-    return _rwkv_midimodel_check_stopped(
-      tokenizer_handle,
-    );
-  }
-
-  late final _rwkv_midimodel_check_stoppedPtr =
-      _lookup<ffi.NativeFunction<ffi.Int Function(rwkv_tokenizer_t)>>(
-          'rwkv_midimodel_check_stopped');
-  late final _rwkv_midimodel_check_stopped = _rwkv_midimodel_check_stoppedPtr
-      .asFunction<int Function(rwkv_tokenizer_t)>();
-
-  ffi.Pointer<ffi.Char> rwkv_midimodel_run_prompt_from_file(
-    rwkv_model_t model_handle,
-    rwkv_tokenizer_t tokenizer_handle,
-    rwkv_sampler_t sampler_handle,
-    ffi.Pointer<ffi.Char> input_path,
-    int input_path_length,
-    double temperature,
-    int top_k,
-    double top_p,
-  ) {
-    return _rwkv_midimodel_run_prompt_from_file(
-      model_handle,
-      tokenizer_handle,
-      sampler_handle,
-      input_path,
-      input_path_length,
-      temperature,
-      top_k,
-      top_p,
-    );
-  }
-
-  late final _rwkv_midimodel_run_prompt_from_filePtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Pointer<ffi.Char> Function(
-              rwkv_model_t,
-              rwkv_tokenizer_t,
-              rwkv_sampler_t,
-              ffi.Pointer<ffi.Char>,
-              ffi.Int,
-              ffi.Float,
-              ffi.Int,
-              ffi.Float)>>('rwkv_midimodel_run_prompt_from_file');
-  late final _rwkv_midimodel_run_prompt_from_file =
-      _rwkv_midimodel_run_prompt_from_filePtr.asFunction<
-          ffi.Pointer<ffi.Char> Function(
-              rwkv_model_t,
-              rwkv_tokenizer_t,
-              rwkv_sampler_t,
-              ffi.Pointer<ffi.Char>,
-              int,
-              double,
-              int,
-              double)>();
-
-  ffi.Pointer<ffi.Char> rwkv_midimodel_run_with_text_prompt(
-    rwkv_model_t model_handle,
-    rwkv_tokenizer_t tokenizer_handle,
-    rwkv_sampler_t sampler_handle,
-    ffi.Pointer<ffi.Char> input_text,
-    int input_text_length,
-    double temperature,
-    int top_k,
-    double top_p,
-  ) {
-    return _rwkv_midimodel_run_with_text_prompt(
-      model_handle,
-      tokenizer_handle,
-      sampler_handle,
-      input_text,
-      input_text_length,
-      temperature,
-      top_k,
-      top_p,
-    );
-  }
-
-  late final _rwkv_midimodel_run_with_text_promptPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Pointer<ffi.Char> Function(
-              rwkv_model_t,
-              rwkv_tokenizer_t,
-              rwkv_sampler_t,
-              ffi.Pointer<ffi.Char>,
-              ffi.Int,
-              ffi.Float,
-              ffi.Int,
-              ffi.Float)>>('rwkv_midimodel_run_with_text_prompt');
-  late final _rwkv_midimodel_run_with_text_prompt =
-      _rwkv_midimodel_run_with_text_promptPtr.asFunction<
-          ffi.Pointer<ffi.Char> Function(
-              rwkv_model_t,
-              rwkv_tokenizer_t,
-              rwkv_sampler_t,
-              ffi.Pointer<ffi.Char>,
-              int,
-              double,
-              int,
-              double)>();
-
-  ffi.Pointer<ffi.Char> rwkv_midimodel_run_with_tokenizer_and_sampler(
-    rwkv_model_t model_handle,
-    rwkv_tokenizer_t tokenizer_handle,
-    rwkv_sampler_t sampler_handle,
-    double temperature,
-    int top_k,
-    double top_p,
-  ) {
-    return _rwkv_midimodel_run_with_tokenizer_and_sampler(
-      model_handle,
-      tokenizer_handle,
-      sampler_handle,
-      temperature,
-      top_k,
-      top_p,
-    );
-  }
-
-  late final _rwkv_midimodel_run_with_tokenizer_and_samplerPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Pointer<ffi.Char> Function(
-              rwkv_model_t,
-              rwkv_tokenizer_t,
-              rwkv_sampler_t,
-              ffi.Float,
-              ffi.Int,
-              ffi.Float)>>('rwkv_midimodel_run_with_tokenizer_and_sampler');
-  late final _rwkv_midimodel_run_with_tokenizer_and_sampler =
-      _rwkv_midimodel_run_with_tokenizer_and_samplerPtr.asFunction<
-          ffi.Pointer<ffi.Char> Function(rwkv_model_t, rwkv_tokenizer_t,
-              rwkv_sampler_t, double, int, double)>();
-
-  void rwkv_midimodel_save_result_to_midi(
-    ffi.Pointer<ffi.Char> midi_path,
-    int midi_path_length,
-  ) {
-    return _rwkv_midimodel_save_result_to_midi(
-      midi_path,
-      midi_path_length,
-    );
-  }
-
-  late final _rwkv_midimodel_save_result_to_midiPtr = _lookup<
-          ffi
-          .NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Char>, ffi.Int)>>(
-      'rwkv_midimodel_save_result_to_midi');
-  late final _rwkv_midimodel_save_result_to_midi =
-      _rwkv_midimodel_save_result_to_midiPtr
-          .asFunction<void Function(ffi.Pointer<ffi.Char>, int)>();
 
   void rwkv_qualcomm_save_context(
     rwkv_model_t model_handle,
