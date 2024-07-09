@@ -223,7 +223,13 @@ void init_model(Model *model, Device device, const std::string &_path,
           RV_UNIMPLEMENTED() << "QnnRwkvBackendCreateWithContext failed";
       }
 #else
-      if (StatusCode::SUCCESS != QnnRwkvBackendCreateWithContext(&model_extra.backend, &model_extra.modelHandle, model_path, "libQnnHtp.so", "libQnnSystem.so")) {
+      std::string backend_lib = "libQnnHtp.so";
+      std::string system_lib = "libQnnSystem.so";
+      if (!library_path.empty()) {
+        backend_lib = library_path + "/" + backend_lib;
+        system_lib = library_path + "/" + system_lib;
+      }
+      if (StatusCode::SUCCESS != QnnRwkvBackendCreateWithContext(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib, system_lib)) {
         RV_UNIMPLEMENTED() << "QnnRwkvBackendCreateWithContext failed";
       }
 #endif
