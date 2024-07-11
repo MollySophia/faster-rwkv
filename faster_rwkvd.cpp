@@ -133,6 +133,19 @@ char* rwkv_chatmodel_eval(
   rwkv::Tokenizer *tokenizer =
       static_cast<rwkv::Tokenizer *>(tokenizer_handle);
   std::vector<int> input_id = tokenizer->encode(std::string(input));
+#ifdef __ANDROID__
+  __android_log_print(ANDROID_LOG_INFO, "faster-rwkvd", "input_str = %s", input);
+  if (input_id.size() == 1) {
+    __android_log_print(ANDROID_LOG_INFO, "faster-rwkvd", "input_id = %d", input_id[0]);
+  } else {
+    std::string log_buf = "input_ids = [";
+    for (int i = 0; i < input_id.size(); i++) {
+      log_buf += std::to_string(input_id[i]) + ", ";
+    }
+    log_buf += "]";
+    __android_log_print(ANDROID_LOG_INFO, "faster-rwkvd", "%s", log_buf.c_str());
+  }
+#endif
   int output_id;
 #ifdef FR_ENABLE_WEBRWKV
   if (is_webrwkv) {
@@ -154,7 +167,14 @@ char* rwkv_chatmodel_eval(
     output_id = sampler->Sample(output_tensor, temperature, top_k, top_p);
     occurences[output_id]++;
   }
-  last_out = tokenizer->decode(output_id);
+  if (output_id == 0) // end_of_sentense
+    last_out = "<end>";
+  else
+    last_out = tokenizer->decode(output_id);
+#ifdef __ANDROID__
+  __android_log_print(ANDROID_LOG_INFO, "faster-rwkvd", "output_str = %s", last_out.c_str());
+  __android_log_print(ANDROID_LOG_INFO, "faster-rwkvd", "output_id = %d", output_id);
+#endif
   return (char*)last_out.c_str();
 }
 
