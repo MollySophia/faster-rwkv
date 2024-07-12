@@ -40,7 +40,17 @@ rwkv_model_t rwkv_model_create(const char *path, const char *strategy) {
 #else
   {
 #endif
-    return new rwkv::Model(path, strategy);
+    rwkv_model_t handle;
+    try {
+      handle = new rwkv::Model(path, strategy);
+    } catch(FRException &e) {
+#ifdef __ANDROID__
+      __android_log_print(ANDROID_LOG_ERROR, "faster-rwkv", "rwkv_model_create failed!");
+      __android_log_print(ANDROID_LOG_ERROR, "faster-rwkv", "Error msg: %s", e.what());
+      return nullptr;
+    }
+#endif
+    return handle;
   }
 }
 
@@ -133,19 +143,6 @@ char* rwkv_chatmodel_eval(
   rwkv::Tokenizer *tokenizer =
       static_cast<rwkv::Tokenizer *>(tokenizer_handle);
   std::vector<int> input_id = tokenizer->encode(std::string(input));
-#ifdef __ANDROID__
-  __android_log_print(ANDROID_LOG_INFO, "faster-rwkvd", "input_str = %s", input);
-  if (input_id.size() == 1) {
-    __android_log_print(ANDROID_LOG_INFO, "faster-rwkvd", "input_id = %d", input_id[0]);
-  } else {
-    std::string log_buf = "input_ids = [";
-    for (int i = 0; i < input_id.size(); i++) {
-      log_buf += std::to_string(input_id[i]) + ", ";
-    }
-    log_buf += "]";
-    __android_log_print(ANDROID_LOG_INFO, "faster-rwkvd", "%s", log_buf.c_str());
-  }
-#endif
   int output_id;
 #ifdef FR_ENABLE_WEBRWKV
   if (is_webrwkv) {
@@ -171,10 +168,6 @@ char* rwkv_chatmodel_eval(
     last_out = "<end>";
   else
     last_out = tokenizer->decode(output_id);
-#ifdef __ANDROID__
-  __android_log_print(ANDROID_LOG_INFO, "faster-rwkvd", "output_str = %s", last_out.c_str());
-  __android_log_print(ANDROID_LOG_INFO, "faster-rwkvd", "output_id = %d", output_id);
-#endif
   return (char*)last_out.c_str();
 }
 
