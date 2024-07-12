@@ -47,9 +47,9 @@ rwkv_model_t rwkv_model_create(const char *path, const char *strategy) {
 #ifdef __ANDROID__
       __android_log_print(ANDROID_LOG_ERROR, "faster-rwkv", "rwkv_model_create failed!");
       __android_log_print(ANDROID_LOG_ERROR, "faster-rwkv", "Error msg: %s", e.what());
+#endif
       return nullptr;
     }
-#endif
     return handle;
   }
 }
