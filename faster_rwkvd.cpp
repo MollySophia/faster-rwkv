@@ -32,7 +32,7 @@ rwkv_model_t rwkv_model_create(const char *path, const char *strategy) {
     init(time(NULL));
     if (std::string(path).find("ABC") != std::string::npos || 
       std::string(path).find("MIDI") != std::string::npos)
-      load_with_rescale(path, 32, 32, 999);
+      load_with_rescale(path, 0, 0, 999);
     else
       load(path, 32, 32);
     return nullptr;
