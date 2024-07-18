@@ -30,12 +30,16 @@ rwkv_model_t rwkv_model_create(const char *path, const char *strategy) {
   if (std::string(strategy).substr(0, 6) == "webgpu") {
     is_webrwkv = true;
     init(time(NULL));
-    if (std::string(path).find("ABC") != std::string::npos || 
-      std::string(path).find("MIDI") != std::string::npos)
-      load_with_rescale(path, 0, 0, 999);
-    else
-      load(path, 32, 32);
-    return nullptr;
+    try {
+      if (std::string(path).find("ABC") != std::string::npos || 
+        std::string(path).find("MIDI") != std::string::npos)
+        load_with_rescale(path, 0, 0, 999);
+      else
+        load(path, 32, 32);
+    } catch(...) {
+      return nullptr;
+    }
+    return (void *)1;
   } else {
 #else
   {
