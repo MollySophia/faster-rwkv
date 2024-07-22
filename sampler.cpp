@@ -46,10 +46,10 @@ int Sampler::Sample(const Tensor &logits, float temperature, int top_k,
   size_t size = logits.numel();
 
   temperature = std::clamp(temperature, 0.1f, 5.f);
-  if (top_k >= size)
+  if (top_k >= size || top_k == 0)
     top_k = size;
 
-  if (top_k == 0 || top_k == 1)
+  if (top_k == 1)
     return std::max_element(logits.data_ptr<float>(), logits.data_ptr<float>() + size) - logits.data_ptr<float>();
 
   // softmax
