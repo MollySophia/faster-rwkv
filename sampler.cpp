@@ -43,62 +43,76 @@ int Sampler::Sample(const Tensor &logits, float temperature, int top_k,
               << ", top_p=" << top_p << std::endl;
   }
 
-  temperature = std::clamp(temperature, 0.1f, 5.f);
-  if (top_k == 0 || top_k >= logits.numel())
-    top_k = logits.numel();
+  size_t size = logits.numel();
 
-  // softmax (temperature is applied in another place)
-  auto probs = softmax(logits, 1.f);
-  // auto probs = logits;
-  std::vector<std::pair<int, float>> id_and_probs;
-  id_and_probs.reserve(probs.numel());
-  for (int i = 0; i < probs.numel(); i++) {
-    id_and_probs.push_back({i, probs.data_ptr<float>()[i]});
+  temperature = std::clamp(temperature, 0.1f, 5.f);
+  if (top_k >= size)
+    top_k = size;
+
+  if (top_k == 0 || top_k == 1)
+    return std::max_element(logits.data_ptr<float>(), logits.data_ptr<float>() + size) - logits.data_ptr<float>();
+
+  // softmax
+  float sum = 0;
+  int *index = new int[size];
+  float *probs = new float[size];
+
+  const float max_logit = *std::max_element(logits.data_ptr<float>(), logits.data_ptr<float>() + size);
+
+  for (int i = 0; i < size; i++) {
+    probs[i] = std::exp(logits.data_ptr<float>()[i] - max_logit);
+    sum += probs[i];
+    index[i] = i;
   }
 
-  std::nth_element(id_and_probs.begin(), id_and_probs.begin() + top_k - 1,
-                   id_and_probs.end(),
-                   [&](auto p1, auto p2) { return p1.second > p2.second; });
-  std::sort(id_and_probs.begin(), id_and_probs.begin() + top_k - 1,
-            [&](auto p1, auto p2) { return p1.second > p2.second; });
+  if (top_k != size)
+    std::nth_element(index, index + top_k,
+          index + size,
+          [&](int i, int j) { return probs[i] > probs[j]; });
+    std::sort(index, index + top_k,
+          [&](int i, int j) { return probs[i] > probs[j]; });
 
   int len = top_k;
 
   // top-p
   float cumsum = 0;
-  for (int i = 0; i < top_k; i++) {
-    cumsum += id_and_probs[i].second;
+  for (int i = 0; i < len; i++) {
+    probs[index[i]] /= sum;
+    cumsum += probs[index[i]];
     if (cumsum >= top_p) {
       len = i + 1;
       break;
     }
   }
 
-  if (kDebug) {
-    std::cout << "Sample: len=" << len << ", cumsum=" << cumsum << ", probs=[";
-    for (int i = 0; i < std::min(len, 10); i++) {
-      std::cout << "(" << id_and_probs[i].first << ", "
-                << id_and_probs[i].second << "), ";
+  // temperature
+  if (fabs(temperature - 1.f) > 1e-6) {
+    cumsum = 0;
+    for (int i = 0; i < len; i++) {
+      probs[index[i]] = std::pow(probs[index[i]], 1.f / temperature);
+      cumsum += probs[index[i]];
     }
-    if (len > 10) {
-      std::cout << "...";
-    }
-    std::cout << "]" << std::endl;
-  }
-
-  std::vector<float> top_probs;
-  top_probs.reserve(len);
-  for (int i = 0; i < len; i++) {
-    top_probs.push_back(std::pow(id_and_probs[i].second, 1.f / temperature));
   }
 
   // random choice
-  int idx = distribution(top_probs, _generator);
-  if (kDebug) {
-    std::cout << "Sample: idx=" << idx << ", id=" << id_and_probs[idx].first
-              << std::endl;
+  float random_value = 1. * (_generator() - _generator.min()) /
+                      (_generator.max() - _generator.min()) * cumsum;
+  
+  int ret = -1;
+  cumsum = 0;
+  for (int i = 0; i < len; i++) {
+    cumsum += probs[index[i]];
+    if (cumsum >= random_value) {
+      ret = index[i];
+      delete[] index;
+      delete[] probs;
+      return ret;
+    }
   }
-  return id_and_probs[idx].first;
+  
+  delete[] index;
+  delete[] probs;
+  RV_UNIMPLEMENTED();
 }
 
 void Sampler::set_seed(int seed) { _generator.seed(seed); }
