@@ -291,7 +291,7 @@ jobs:
     - name: build
       run: |
         mkdir build && cd build
-        cmake -DFR_ENABLE_NCNN=ON -DFR_ENABLE_QNN=ON -DFR_ENABLE_MTK=ON -DFR_ENABLE_WEBRWKV=ON -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-28 -DANDROID_NDK=$ANDROID_NDK -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_BUILD_SHARED_LIB=ON -GNinja ..
+        cmake -DFR_ENABLE_NCNN=ON -DFR_ENABLE_QNN=ON -DFR_ENABLE_MTK=ON -DFR_ENABLE_WEBRWKV=ON -DFR_ENABLE_RWKVCPP=ON -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-28 -DANDROID_NDK=$ANDROID_NDK -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_BUILD_SHARED_LIB=ON -GNinja ..
         cmake --build .
     - name: package
       run: |

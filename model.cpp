@@ -48,6 +48,8 @@ Model::Model(const std::string &path, const std::string &strategy,
       return Device::kQNN;
     } else if (dev_str == "mtk") {
       return Device::kMTK;
+    } else if (dev_str == "rwkv.cpp") {
+      return Device::kRwkvCpp;
     } else {
       RV_UNIMPLEMENTED();
     }
@@ -191,7 +193,9 @@ void Model::ResetStates() {
 #endif
   _states.clear();
   // TODO:
-  auto device = (_act_device == Device::kNCNN || _act_device == Device::kONNX || _act_device == Device::kQNN || _act_device == Device::kMTK)
+  auto device = (_act_device == Device::kNCNN || _act_device == Device::kONNX 
+    || _act_device == Device::kQNN || _act_device == Device::kMTK || 
+    _act_device == Device::kRwkvCpp)
      ? Device::kCPU : _act_device;
   if (this->_version == "4") {
     for (int i = 0; i < _n_layer; i++) {

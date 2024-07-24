@@ -26,6 +26,7 @@ option(FR_ENABLE_NCNN "Enable NCNN" ON)
 option(FR_ENABLE_QNN "Enable Qualcomm QNN backend" OFF)
 option(FR_ENABLE_MTK "Enable MediaTek NeuronPilot backend" OFF)
 option(FR_ENABLE_WEBRWKV "Enable WebRWKV backend" OFF)
+option(FR_ENABLE_RWKVCPP "Enable rwkv.cpp backend" ON)
 option(FR_BUILD_PYTHON "" OFF)
 if (DEFINED ANDROID_NDK)
     option(FR_BUILD_JNI "" ON)
@@ -108,6 +109,13 @@ if (FR_ENABLE_NCNN)
     set(ncnn_kernel_srcs
         kernels/ncnn/init_model.cpp
         kernels/ncnn/model_forward.cpp
+    )
+endif()
+
+if (FR_ENABLE_RWKVCPP AND ANDROID)
+    set(rwkv_cpp_srcs
+        kernels/rwkv.cpp/init_model.cpp
+        kernels/rwkv.cpp/model_forward.cpp
     )
 endif()
 
@@ -212,6 +220,7 @@ set(INTERNAL_SRC
     ${onnx_kernel_srcs}
     ${qnn_kernel_srcs}
     ${mtk_kernel_srcs}
+    ${rwkv_cpp_srcs}
     )
 
 add_library(faster_rwkv_internal ${INTERNAL_SRC})
@@ -237,6 +246,12 @@ if (FR_ENABLE_MTK)
     target_include_directories(faster_rwkv_internal PUBLIC kernels/mtk/include)
     target_link_directories(faster_rwkv_internal PUBLIC kernels/mtk/obj/aarch64-android/)
     target_link_libraries(faster_rwkv_internal PUBLIC rwkv_mtk)
+endif()
+
+if (FR_ENABLE_RWKVCPP AND ANDROID)
+    target_compile_definitions(faster_rwkv_internal PUBLIC FR_ENABLE_RWKVCPP)
+    target_link_directories(faster_rwkv_internal PUBLIC kernels/rwkv.cpp/obj/aarch64-android/)
+    target_link_libraries(faster_rwkv_internal PUBLIC rwkv ggml)
 endif()
 
 if (DEFINED ANDROID_NDK)

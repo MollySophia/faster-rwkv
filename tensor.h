@@ -50,6 +50,7 @@ enum class Device {
   kONNX,
   kQNN,
   kMTK,
+  kRwkvCpp,
 };
 std::optional<Device> &default_dispatch_device();
 
