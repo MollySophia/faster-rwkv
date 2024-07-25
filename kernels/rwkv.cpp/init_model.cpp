@@ -107,7 +107,7 @@ void init_model(Model *model, Device device, const std::string &_path,
     RV_UNIMPLEMENTED() << "No config file found";
   }
 
-  model_extra.ctx = rwkv_init_from_file(_path.c_str(), 4, 0);
+  model_extra.ctx = rwkv_init_from_file(_path.c_str(), 1, 0);
   RV_CHECK(model_extra.ctx != nullptr) << "Failed to init rwkv.cpp context from file: " << _path;
 }
 
