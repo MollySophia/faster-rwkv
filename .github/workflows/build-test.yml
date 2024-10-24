@@ -179,7 +179,7 @@ jobs:
     - name: build-arm64
       run: |
         mkdir build-arm64 && cd build-arm64
-        cmake -DFR_ENABLE_NCNN=ON -DFR_BUILD_STATIC_WRAPPER_LIB=ON -DFR_BUILD_EXECUTABLE=OFF \
+        cmake -DFR_ENABLE_NCNN=ON -DFR_BUILD_STATIC_WRAPPER_LIB=ON -DFR_BUILD_EXECUTABLE=OFF -DFR_ENABLE_WEBRWKV=ON \
             -GXcode -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake -DPLATFORM=OS64 -DARCHS="arm64" \
             -DDEPLOYMENT_TARGET=$IOS_DEPLOYMENT_TARGET -DENABLE_BITCODE=$ENABLE_BITCODE -DENABLE_ARC=$ENABLE_ARC -DENABLE_VISIBILITY=$ENABLE_VISIBILITY \
             -DOpenMP_C_FLAGS="-Xclang -fopenmp" -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" -DOpenMP_C_LIB_NAMES="libomp" \
@@ -190,7 +190,7 @@ jobs:
     - name: build-arm64e
       run: |
         mkdir build-arm64e && cd build-arm64e
-        cmake -DFR_ENABLE_NCNN=ON -DFR_BUILD_STATIC_WRAPPER_LIB=ON -DFR_BUILD_EXECUTABLE=OFF \
+        cmake -DFR_ENABLE_NCNN=ON -DFR_BUILD_STATIC_WRAPPER_LIB=ON -DFR_BUILD_EXECUTABLE=OFF -DFR_ENABLE_WEBRWKV=ON \
             -GXcode -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake -DPLATFORM=OS64 -DARCHS="arm64e" \
             -DDEPLOYMENT_TARGET=$IOS_DEPLOYMENT_TARGET -DENABLE_BITCODE=$ENABLE_BITCODE -DENABLE_ARC=$ENABLE_ARC -DENABLE_VISIBILITY=$ENABLE_VISIBILITY \
             -DOpenMP_C_FLAGS="-Xclang -fopenmp" -DOpenMP_CXX_FLAGS="-Xclang -fopenmp" -DOpenMP_C_LIB_NAMES="libomp" \
@@ -234,7 +234,7 @@ jobs:
             -o simulator/libfaster_rwkv_static.a
         rm -f ${{ env.PACKAGENAME }}.zip
         pushd native
-        zip -9 -y -r ../${{ env.PACKAGENAME }}.zip libfaster_rwkv_static.a
+        zip -9 -y -r ../${{ env.PACKAGENAME }}.zip libfaster_rwkv_static.a ../web_rwkv_ffi_objs/apple-ios-universal/libweb_rwkv_ffi.a
         popd
         pushd simulator
         zip -9 -y -r ../${{ env.PACKAGENAME }}-simulator.zip libfaster_rwkv_static.a
