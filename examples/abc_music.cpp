@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
     std::string result = input;
     auto start = std::chrono::system_clock::now();
     auto output_tensor = Copy(model.Run(input_ids), rwkv::Device::kCPU);
-    for (int i = 0; i < 256; i++) {
+    for (int i = 0; i < 1024; i++) {
       auto output_id = sampler.Sample(output_tensor, 1.f, 1, 0.f);
       if (output_id == tokenizer.eos_token_id) {
         break;

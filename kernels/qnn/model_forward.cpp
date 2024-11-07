@@ -29,7 +29,7 @@ GraphBackendForwardInternal(const Model *model, int id,
                             std::vector<std::vector<QnnTensorWrapper>> &&states) {
   auto &extra = *std::any_cast<std::shared_ptr<QnnExtra>>(model->extra());
 
-  QnnRwkvCopyStatesInPlace(extra.backend);
+  // QnnRwkvCopyStatesInPlace(extra.backend);
   QnnRwkvExecute(extra.backend, id);
 
   if (extra.output_shape.empty()) {
