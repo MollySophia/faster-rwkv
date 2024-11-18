@@ -248,7 +248,17 @@ void init_model(Model *model, Device device, const std::string &_path,
       }
 
       if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib)) {
+        if (model_extra.backend_str == "HTP") {
+          backend_lib = "QnnGpu.dll";
+          if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib)) {
+            backend_lib = "QnnCpu.dll";
+            if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib)) {
+              RV_UNIMPLEMENTED() << "QnnRwkvBackendCreate failed";
+            }
+          }
+        } else {
           RV_UNIMPLEMENTED() << "QnnRwkvBackendCreate failed";
+        }
       }
 #else
       std::string backend_lib;
