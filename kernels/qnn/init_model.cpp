@@ -250,8 +250,10 @@ void init_model(Model *model, Device device, const std::string &_path,
       if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib)) {
         if (model_extra.backend_str == "HTP") {
           backend_lib = "QnnGpu.dll";
+          model_extra.backend_str = "GPU";
           if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib)) {
             backend_lib = "QnnCpu.dll";
+            model_extra.backend_str = "CPU";
             if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib)) {
               RV_UNIMPLEMENTED() << "QnnRwkvBackendCreate failed";
             }
@@ -281,11 +283,13 @@ void init_model(Model *model, Device device, const std::string &_path,
       if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib)) {
         if (model_extra.backend_str == "HTP") {
           backend_lib = library_path + "/libQnnGpu.so";
+          model_extra.backend_str = "GPU";
 #ifdef FR_ENABLE_ANDROID_ASSET
           __android_log_print(ANDROID_LOG_INFO, TAG, "Trying qualcomm %s backend", backend_lib.c_str());
 #endif
           if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib)) {
             backend_lib = library_path + "/libQnnCpu.so";
+            model_extra.backend_str = "CPU";
 #ifdef FR_ENABLE_ANDROID_ASSET
           __android_log_print(ANDROID_LOG_INFO, TAG, "Trying qualcomm %s backend", backend_lib.c_str());
 #endif
@@ -297,6 +301,12 @@ void init_model(Model *model, Device device, const std::string &_path,
           RV_UNIMPLEMENTED() << "QnnRwkvBackendCreate failed";
       }
 #endif
+  QnnRwkvSaveContext(model_extra.backend, model_path);
+  if (config.find("HTP") != std::string::npos) {
+    config.replace(config.find("HTP"), 3, model_extra.backend_str);
+  }
+  std::ofstream config_file("model_cache.config");
+  config_file << config;
   }
 
 #ifdef FR_ENABLE_ANDROID_ASSET
