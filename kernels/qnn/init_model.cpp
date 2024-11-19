@@ -301,12 +301,19 @@ void init_model(Model *model, Device device, const std::string &_path,
           RV_UNIMPLEMENTED() << "QnnRwkvBackendCreate failed";
       }
 #endif
-  QnnRwkvSaveContext(model_extra.backend, model_path);
-  if (config.find("HTP") != std::string::npos) {
-    config.replace(config.find("HTP"), 3, model_extra.backend_str);
-  }
-  std::ofstream config_file("model_cache.config");
-  config_file << config;
+
+#ifdef _WIN32
+    std::string model_dir = model_path.substr(0, path.find_last_of("\\") + 1);
+#else
+    std::string model_dir = model_path.substr(0, path.find_last_of("/") + 1);
+#endif
+    std::cout << "model_dir: " << model_dir << std::endl;
+    QnnRwkvSaveContext(model_extra.backend, model_dir);
+    if (config.find("HTP") != std::string::npos) {
+      config.replace(config.find("HTP"), 3, model_extra.backend_str);
+    }
+    std::ofstream config_file("model_cache.config");
+    config_file << config;
   }
 
 #ifdef FR_ENABLE_ANDROID_ASSET
