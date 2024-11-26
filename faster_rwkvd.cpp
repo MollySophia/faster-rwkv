@@ -175,6 +175,39 @@ char* rwkv_chatmodel_eval(
   return (char*)last_out.c_str();
 }
 
+char* rwkv_model_eval_id(
+    rwkv_model_t model_handle,
+    rwkv_sampler_t sampler_handle,
+    int token,
+    // sampler params
+    float temperature, int top_k, float top_p,
+    float presence_penalty, float frequency_penalty, float penalty_decay) {
+  std::vector<int> input_id = {token};
+  int output_id;
+#ifdef FR_ENABLE_WEBRWKV
+  if (is_webrwkv) {
+    std::vector<uint16_t> input_ids_u16 = std::vector<uint16_t>(input_id.begin(), input_id.end());
+    output_id = (int)infer(input_ids_u16.data(), input_ids_u16.size(), {temperature, top_p, static_cast<uintptr_t>(top_k)});
+  } else {
+#else
+  {
+#endif
+    rwkv::Sampler *sampler = static_cast<rwkv::Sampler *>(sampler_handle);
+    rwkv::Model *model = static_cast<rwkv::Model *>(model_handle);
+    auto output_tensor = Copy(model->Run(input_id), rwkv::Device::kCPU);
+    for (auto &[id, occurence] : occurences) {
+      output_tensor.data_ptr<float>()[id] -=
+          frequency_penalty * occurence + presence_penalty;
+      occurence *= penalty_decay;
+    }
+
+    output_id = sampler->Sample(output_tensor, temperature, top_k, top_p);
+    occurences[output_id]++;
+  }
+  return output_id;
+}
+
+
 int rwkv_model_load_states(rwkv_model_t model_handle, const char *path) {
   try {
     rwkv::Model *model = static_cast<rwkv::Model *>(model_handle);
