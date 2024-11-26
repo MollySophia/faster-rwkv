@@ -74,7 +74,7 @@ char* rwkv_chatmodel_eval(rwkv_model_t model_handle,
                     // penalty params
                     float presence_penalty, float frequency_penalty, float penalty_decay);
 
-char* rwkv_model_eval_id(
+int rwkv_model_eval_id(
                     rwkv_model_t model_handle,
                     rwkv_sampler_t sampler_handle,
                     int token,

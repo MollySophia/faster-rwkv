@@ -175,7 +175,7 @@ char* rwkv_chatmodel_eval(
   return (char*)last_out.c_str();
 }
 
-char* rwkv_model_eval_id(
+int rwkv_model_eval_id(
     rwkv_model_t model_handle,
     rwkv_sampler_t sampler_handle,
     int token,
