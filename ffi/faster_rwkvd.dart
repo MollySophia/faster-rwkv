@@ -229,6 +229,46 @@ class faster_rwkvd {
           double,
           double)>();
 
+  int rwkv_model_eval_id(
+    rwkv_model_t model_handle,
+    rwkv_sampler_t sampler_handle,
+    int token,
+    double temperature,
+    int top_k,
+    double top_p,
+    double presence_penalty,
+    double frequency_penalty,
+    double penalty_decay,
+  ) {
+    return _rwkv_model_eval_id(
+      model_handle,
+      sampler_handle,
+      token,
+      temperature,
+      top_k,
+      top_p,
+      presence_penalty,
+      frequency_penalty,
+      penalty_decay,
+    );
+  }
+
+  late final _rwkv_model_eval_idPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Int Function(
+              rwkv_model_t,
+              rwkv_sampler_t,
+              ffi.Int,
+              ffi.Float,
+              ffi.Int,
+              ffi.Float,
+              ffi.Float,
+              ffi.Float,
+              ffi.Float)>>('rwkv_model_eval_id');
+  late final _rwkv_model_eval_id = _rwkv_model_eval_idPtr.asFunction<
+      int Function(rwkv_model_t, rwkv_sampler_t, int, double, int, double,
+          double, double, double)>();
+
   int rwkv_model_load_states(
     rwkv_model_t model_handle,
     ffi.Pointer<ffi.Char> path,
