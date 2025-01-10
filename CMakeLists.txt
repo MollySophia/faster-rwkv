@@ -339,7 +339,8 @@ if (FR_BUILD_SHARED_LIB)
 
         target_compile_definitions(faster_rwkv_internal PUBLIC FR_ENABLE_WEBRWKV)
         if (WIN32)
-            target_link_libraries(faster_rwkvd PUBLIC "$<LINK_LIBRARY:WHOLE_ARCHIVE,faster_rwkv_internal>" web_rwkv_ffi ws2_32 opengl32 d3d12 d3dcompiler userenv kernel32 user32 ntdll bcrypt)
+            target_link_libraries(faster_rwkvd PUBLIC "$<LINK_LIBRARY:WHOLE_ARCHIVE,faster_rwkv_internal>" web_rwkv_ffi 
+                ws2_32 opengl32 d3d12 d3dcompiler userenv kernel32 user32 ntdll bcrypt propsys runtimeobject)
         endif()
         if (IOS)
             target_link_libraries(faster_rwkvd PUBLIC "$<LINK_LIBRARY:WHOLE_ARCHIVE,faster_rwkv_internal>" web_rwkv_ffi)
