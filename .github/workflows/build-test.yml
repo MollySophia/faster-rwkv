@@ -58,9 +58,9 @@ jobs:
         path: ${{ env.PACKAGENAME }}.zip
 
   openmp-ios:
-    runs-on: macos-12
+    runs-on: macos-14
     env:
-      DEVELOPER_DIR: /Applications/Xcode_13.4.1.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_15.2.app/Contents/Developer
       IOS_DEPLOYMENT_TARGET: '13.0'
       ENABLE_BITCODE: OFF
       ENABLE_ARC: OFF
@@ -154,10 +154,10 @@ jobs:
         path: openmp-install
   ios:
     needs: [setup, openmp-ios]
-    runs-on: macos-12
+    runs-on: macos-14
     env:
       PACKAGENAME: libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios
-      DEVELOPER_DIR: /Applications/Xcode_13.4.1.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_15.2.app/Contents/Developer
       IOS_DEPLOYMENT_TARGET: '13.0'
       ENABLE_BITCODE: OFF
       ENABLE_ARC: OFF
@@ -220,6 +220,11 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install ..
         cmake --build . -j 3
         cmake --build . --target install --config Release
+    - name: build-web-rwkv
+      run: |
+        git clone https://github.com/cryscan/web-rwkv-ffi && cd web-rwkv-ffi
+        rustup target add aarch64-apple-ios
+        cargo build --release --target aarch64-apple-ios
     - name: package
       run: |
         mkdir native
@@ -234,7 +239,7 @@ jobs:
             -o simulator/libfaster_rwkv_static.a
         rm -f ${{ env.PACKAGENAME }}.zip
         pushd native
-        zip -9 -y -r ../${{ env.PACKAGENAME }}.zip libfaster_rwkv_static.a ../web_rwkv_ffi_objs/apple-ios-universal/libweb_rwkv_ffi.a
+        zip -9 -y -r ../${{ env.PACKAGENAME }}.zip libfaster_rwkv_static.a ../web-rwkv-ffi/target/aarch64-apple-ios/release/libweb_rwkv_ffi.a
         popd
         pushd simulator
         zip -9 -y -r ../${{ env.PACKAGENAME }}-simulator.zip libfaster_rwkv_static.a
@@ -292,6 +297,7 @@ jobs:
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
+        rustup target add --toolchain stable-x86_64-unknown-linux-gnu aarch64-linux-android
         sudo apt-get update
         sudo apt-get install -y libncurses5
         wget -q https://dl.google.com/android/repository/android-ndk-r25c-linux.zip -O $GITHUB_WORKSPACE/android-ndk-r25c-linux.zip

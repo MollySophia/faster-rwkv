@@ -318,17 +318,33 @@ if (FR_BUILD_SHARED_LIB)
     endif()
     add_library(faster_rwkvd SHARED faster_rwkvd.cpp)
     if (FR_ENABLE_WEBRWKV)
+        if (NOT IOS)
+            FetchContent_Declare(
+                Corrosion
+                GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
+                GIT_TAG v0.5
+            )
+            FetchContent_MakeAvailable(Corrosion)
+
+            FetchContent_Declare(
+                web_rwkv_ffi
+                GIT_REPOSITORY https://github.com/cryscan/web-rwkv-ffi.git
+                GIT_TAG main
+            )
+            FetchContent_MakeAvailable(web_rwkv_ffi)
+
+            corrosion_import_crate(MANIFEST_PATH ${web_rwkv_ffi_SOURCE_DIR}/Cargo.toml
+                CRATE_TYPES staticlib)
+        endif()
+
         target_compile_definitions(faster_rwkv_internal PUBLIC FR_ENABLE_WEBRWKV)
         if (WIN32)
-            target_link_directories(faster_rwkvd PUBLIC web_rwkv_ffi_objs/x86_64-windows)
-            target_link_libraries(faster_rwkvd PUBLIC "$<LINK_LIBRARY:WHOLE_ARCHIVE,faster_rwkv_internal>" web_rwkv_ffi.lib ws2_32 opengl32 d3d12 d3dcompiler userenv kernel32 user32 ntdll bcrypt)
+            target_link_libraries(faster_rwkvd PUBLIC "$<LINK_LIBRARY:WHOLE_ARCHIVE,faster_rwkv_internal>" web_rwkv_ffi ws2_32 opengl32 d3d12 d3dcompiler userenv kernel32 user32 ntdll bcrypt)
         endif()
         if (IOS)
-            target_link_directories(faster_rwkvd PUBLIC web_rwkv_ffi_objs/apple-ios-universal)
             target_link_libraries(faster_rwkvd PUBLIC "$<LINK_LIBRARY:WHOLE_ARCHIVE,faster_rwkv_internal>" web_rwkv_ffi)
         endif()
         if (DEFINED ANDROID_NDK)
-            target_link_directories(faster_rwkvd PUBLIC web_rwkv_ffi_objs/aarch64-linux-android)
             target_link_libraries(faster_rwkvd PUBLIC "$<LINK_LIBRARY:WHOLE_ARCHIVE,faster_rwkv_internal>" web_rwkv_ffi)
         endif()
     else()
