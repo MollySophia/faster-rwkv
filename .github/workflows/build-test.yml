@@ -142,6 +142,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install ..
         cmake --build . -j 8
         cmake --build . --target install --config Release
+        cd ..
     - name: build-web-rwkv
       run: |
         git clone https://github.com/cryscan/web-rwkv-ffi && cd web-rwkv-ffi
@@ -495,6 +496,7 @@ jobs:
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28.zip
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-windows-vs2022.zip
           libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios.zip
+          libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-macos-universal.zip
 
     - uses: "marvinpinto/action-automatic-releases@latest"
       if: ${{ github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') }}
