@@ -209,11 +209,15 @@ Tensor Tensor::flip(const std::initializer_list<LengthType> &dims) const {
 
 Tensor operator+(const Tensor &lhs, const Tensor &rhs) { return add(lhs, rhs); }
 
+Tensor operator+(float lhs, const Tensor &rhs) { return add(lhs, rhs); }
+
 Tensor operator-(const Tensor &lhs, const Tensor &rhs) { return sub(lhs, rhs); }
 
 Tensor operator-(float lhs, const Tensor &rhs) { return sub(lhs, rhs); }
 
 Tensor operator*(const Tensor &lhs, const Tensor &rhs) { return mul(lhs, rhs); }
+
+Tensor operator*(float lhs, const Tensor &rhs) { return mul(lhs, rhs); }
 
 Tensor operator/(const Tensor &lhs, const Tensor &rhs) { return div(lhs, rhs); }
 

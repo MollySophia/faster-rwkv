@@ -250,9 +250,11 @@ private:
 };
 
 Tensor operator+(const Tensor &lhs, const Tensor &rhs);
+Tensor operator+(float lhs, const Tensor &rhs);
 Tensor operator-(const Tensor &lhs, const Tensor &rhs);
 Tensor operator-(float lhs, const Tensor &rhs);
 Tensor operator*(const Tensor &lhs, const Tensor &rhs);
+Tensor operator*(float lhs, const Tensor &rhs);
 Tensor operator/(const Tensor &lhs, const Tensor &rhs);
 
 Tensor Copy(const Tensor &x, Device device, bool always_copy = false);

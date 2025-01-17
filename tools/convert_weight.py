@@ -39,6 +39,10 @@ def convert_to_fr(input_path, output_path):
                 version = max(5.2, version)
         if 'time_maa' in x:
             version = max(6, version)
+        if 'r_k' in x:
+            version = max(7, version)
+            n_head = w[x].shape[0]
+            d['n_head'] = n_head
         if int(version) == 6 and 'time_first' in x:
             n_head = w[x].shape[0]
             d['n_head'] = n_head

@@ -103,6 +103,7 @@ Tensor ModelForward(Model *model, Device device, int id) {
 #endif
 
   int param_idx = 0;
+  Tensor v_first = Tensor::Empty({0}, DType::kFloat32, Device::kNCNNMeta);
 
   for (int i = 0; i < states.size(); ++i) {
     auto &state = states[i];
@@ -165,6 +166,46 @@ Tensor ModelForward(Model *model, Device device, int id) {
           mark_as_output(state[1], "output_state_" + std::to_string(i) + "_1");
         }
         param_idx += 21;
+      } else if (model->_version == "7") {
+        if (i == 0) {
+          std::tie(x, state[0], state[1], v_first) = att_one_v7(
+            x, state[0], state[1], v_first, i,
+            params[param_idx], params[param_idx + 1], // ln_w, ln_b
+            params[param_idx + 2], params[param_idx + 3], // lx_w, lx_b
+            params[param_idx + 4], params[param_idx + 5], // x_r, x_w
+            params[param_idx + 6], params[param_idx + 7], // x_k, x_v
+            params[param_idx + 8], params[param_idx + 9], // x_a, x_g
+            params[param_idx + 10], params[param_idx + 11], params[param_idx + 12], // a0, a1, a2
+            params[param_idx + 10], params[param_idx + 11], params[param_idx + 12], // v0, v1, v2
+            params[param_idx + 13], params[param_idx + 14], params[param_idx + 15], // w0, w1, w2
+            params[param_idx + 16], params[param_idx + 17], // g1, g2
+            params[param_idx + 18], params[param_idx + 19], params[param_idx + 20], // k_k, k_a, r_k
+            params[param_idx + 21], params[param_idx + 22], // kw, vw
+            params[param_idx + 23], params[param_idx + 24] // rw, ow
+          );
+          param_idx += 25;
+        } else {
+          std::tie(x, state[0], state[1], v_first) = att_one_v7(
+            x, state[0], state[1], v_first, i,
+            params[param_idx], params[param_idx + 1], // ln_w, ln_b
+            params[param_idx + 2], params[param_idx + 3], // lx_w, lx_b
+            params[param_idx + 4], params[param_idx + 5], // x_r, x_w
+            params[param_idx + 6], params[param_idx + 7], // x_k, x_v
+            params[param_idx + 8], params[param_idx + 9], // x_a, x_g
+            params[param_idx + 10], params[param_idx + 11], params[param_idx + 12], // a0, a1, a2
+            params[param_idx + 13], params[param_idx + 14], params[param_idx + 15], // v0, v1, v2
+            params[param_idx + 16], params[param_idx + 17], params[param_idx + 18], // w0, w1, w2
+            params[param_idx + 19], params[param_idx + 20], // g1, g2
+            params[param_idx + 21], params[param_idx + 22], params[param_idx + 23], // k_k, k_a, r_k
+            params[param_idx + 24], params[param_idx + 25], // kw, vw
+            params[param_idx + 26], params[param_idx + 27] // rw, ow
+          );
+          param_idx += 28;
+        }
+        if (device == Device::kNCNNMeta || device == Device::kONNXMeta) {
+          mark_as_output(state[0], "output_state_" + std::to_string(i) + "_0");
+          mark_as_output(state[1], "output_state_" + std::to_string(i) + "_1");
+        }
       } else {
         RV_UNIMPLEMENTED();
       }
@@ -175,23 +216,29 @@ Tensor ModelForward(Model *model, Device device, int id) {
         offset = 2;
       }
 
-      if (model->_version == "6") {
+      if (model->_version == "7") {
+        std::tie(x, state[offset]) = ffn_v7(
+          x, state[offset], params[param_idx], params[param_idx + 1],
+          params[param_idx + 2], params[param_idx + 3], params[param_idx + 4]);
+        param_idx += 5;
+      } else if (model->_version == "6") {
         std::tie(x, state[offset]) = ffn_v6(
           x, state[offset], params[param_idx], params[param_idx + 1],
           params[param_idx + 2], params[param_idx + 3], params[param_idx + 4],
           params[param_idx + 5], params[param_idx + 6]);
+        param_idx += 7;
       } else {
         std::tie(x, state[offset]) = ffn(
           x, state[offset], params[param_idx], params[param_idx + 1],
           params[param_idx + 2], params[param_idx + 3], params[param_idx + 4],
           params[param_idx + 5], params[param_idx + 6]);
+        param_idx += 7;
       }
 
       if (device == Device::kNCNNMeta || device == Device::kONNXMeta) {
         mark_as_output(state[offset], "output_state_" + std::to_string(i) +
                                           "_" + std::to_string(offset));
       }
-      param_idx += 7;
     }
 
     if (x.dtype() == DType::kFloat16 && (i + 1) % model->_rescale_layer == 0) {

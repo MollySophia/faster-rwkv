@@ -188,14 +188,14 @@ Tensor layernorm(const Tensor &x, const Tensor &weight, const Tensor &bias) {
 }
 
 Tensor groupnorm(const Tensor &x, int num_groups, const Tensor &weight,
-                 const Tensor &bias) {
+                 const Tensor &bias, const float eps = 1e-5f) {
   PRINT_OP_TYPE_AND_NAME("GroupNorm", 1, 1);
   auto output = Tensor::Empty(x.shape(), DType::kFloat32, Device::kNCNNMeta);
   fprintf(pp, " %s %s", x.name.c_str(), output.name.c_str());
 
   fprintf(pp, " 0=%d", num_groups);
   fprintf(pp, " 1=%d", static_cast<int>(weight.numel()));
-  fprintf(pp, " 2=%e", 1e-5f);
+  fprintf(pp, " 2=%e", eps);
   fprintf(pp, " 3=1");
   fprintf(pp, "\n");
   append_data_to_bin_file(cpu::cast_dtype(weight, DType::kFloat32), false);
@@ -767,7 +767,7 @@ BINARYOP(maximum);
 Tensor rsub_scalar(float x, const Tensor &y) {
   Tensor meta_y = y.device() == Device::kCPU ? MemoryData(y) : y;
   PRINT_OP_TYPE_AND_NAME("BinaryOp", 1, 1);
-  auto output = Tensor::Empty({}, DType::kFloat32, Device::kNCNNMeta);
+  auto output = Tensor::Empty(y.shape(), DType::kFloat32, Device::kNCNNMeta);
   fprintf(pp, " %s", meta_y.name.c_str());
   fprintf(pp, " %s", output.name.c_str());
   fprintf(pp, " 0=%d", binary_op_ids["rsub"]);
@@ -777,11 +777,40 @@ Tensor rsub_scalar(float x, const Tensor &y) {
   return output;
 }
 
-Tensor exp(const Tensor &x) {
+Tensor add_scalar(float x, const Tensor &y) {
+  Tensor meta_y = y.device() == Device::kCPU ? MemoryData(y) : y;
+  PRINT_OP_TYPE_AND_NAME("BinaryOp", 1, 1);
+  auto output = Tensor::Empty(y.shape(), DType::kFloat32, Device::kNCNNMeta);
+  fprintf(pp, " %s", meta_y.name.c_str());
+  fprintf(pp, " %s", output.name.c_str());
+  fprintf(pp, " 0=%d", binary_op_ids["add"]);
+  fprintf(pp, " 1=1");
+  fprintf(pp, " 2=%e", x);
+  fprintf(pp, "\n");
+  return output;
+}
+
+Tensor mul_scalar(float x, const Tensor &y) {
+  Tensor meta_y = y.device() == Device::kCPU ? MemoryData(y) : y;
+  PRINT_OP_TYPE_AND_NAME("BinaryOp", 1, 1);
+  auto output = Tensor::Empty(y.shape(), DType::kFloat32, Device::kNCNNMeta);
+  fprintf(pp, " %s", meta_y.name.c_str());
+  fprintf(pp, " %s", output.name.c_str());
+  fprintf(pp, " 0=%d", binary_op_ids["mul"]);
+  fprintf(pp, " 1=1");
+  fprintf(pp, " 2=%e", x);
+  fprintf(pp, "\n");
+  return output;
+}
+
+Tensor exp(const Tensor &x, float scale = 1.0f) {
   PRINT_OP_TYPE_AND_NAME("Exp", 1, 1);
   auto output = Tensor::Empty(x.shape(), DType::kFloat32, Device::kNCNNMeta);
   fprintf(pp, " %s", x.name.c_str());
   fprintf(pp, " %s", output.name.c_str());
+  if (scale != 1.0f) {
+    fprintf(pp, " 1=%e", scale);
+  }
   fprintf(pp, "\n");
   return output;
 }
@@ -818,6 +847,31 @@ Tensor tanh(const Tensor &x) {
   auto output = Tensor::Empty(x.shape(), DType::kFloat32, Device::kNCNNMeta);
   fprintf(pp, " %s", x.name.c_str());
   fprintf(pp, " %s", output.name.c_str());
+  fprintf(pp, "\n");
+  return output;
+}
+
+Tensor l2norm(const Tensor &x) {
+  PRINT_OP_TYPE_AND_NAME("Normalize", 1, 1);
+  auto output = Tensor::Empty(x.shape(), DType::kFloat32, Device::kNCNNMeta);
+  auto gammar = Tensor::Empty({1}, DType::kFloat32, Device::kCPU);
+  gammar.data_ptr<float>()[0] = 1.0F;
+  fprintf(pp, " %s", x.name.c_str());
+  fprintf(pp, " %s", output.name.c_str());
+  fprintf(pp, " 0=1 1=1 2=0.0000001 3=1 4=0 9=1");
+  fprintf(pp, "\n");
+  append_data_to_bin_file(gammar, false);
+  return output;
+}
+
+Tensor sum(const Tensor &x) {
+  PRINT_OP_TYPE_AND_NAME("Reduction", 1, 1);
+  auto shape = x.shape();
+  shape[shape.size() - 1] = 1;
+  auto output = Tensor::Empty(shape, DType::kFloat32, Device::kNCNNMeta);
+  fprintf(pp, " %s", x.name.c_str());
+  fprintf(pp, " %s", output.name.c_str());
+  fprintf(pp, " 1=0 -23303=1,-1 4=1 5=1");
   fprintf(pp, "\n");
   return output;
 }
@@ -1155,6 +1209,99 @@ att_one_v6(const Tensor &x, const Tensor &sx, const Tensor &s,
 
 KernelRegister att_v6_reg("att_one_v6", Device::kNCNNMeta, att_one_v6);
 
+std::tuple<Tensor, Tensor, Tensor, Tensor>
+att_one_v7(const Tensor &x, const Tensor &sx, const Tensor &s,
+            Tensor &v_first, const int layer_id,
+            const Tensor &ln_w, const Tensor &ln_b, const Tensor &lx_w,
+            const Tensor &lx_b, const Tensor &x_r, const Tensor &x_w,
+            const Tensor &x_k, const Tensor &x_v, const Tensor &x_a, const Tensor &x_g, 
+            const Tensor &a0, const Tensor &a1, const Tensor &a2,
+            const Tensor &v0, const Tensor &v1, const Tensor &v2,
+            const Tensor &w0, const Tensor &w1, const Tensor &w2,
+            const Tensor &g1, const Tensor &g2, const Tensor &k_k, 
+            const Tensor &k_a, const Tensor &r_k,
+            const Tensor &kw, const Tensor &vw, const Tensor &rw,
+            const Tensor &ow) {
+
+  auto [x_s1, x_s2] = split2(x);
+  auto xx = layernorm(x_s1, ln_w, ln_b);
+  auto [xx1, xx2, xx_out] = split3(xx);
+  auto [xx11, xx12, xx13, xx14, xx15, xx16] = split6(xx1);
+  auto xx_sx = sx - xx2;
+  auto [xx_sx_s1, xx_sx_s2, xx_sx_s3, xx_sx_s4, xx_sx_s5, xx_sx_s6]
+     = split6(xx_sx);
+
+  auto print_shape = [&](std::string name, Tensor t) {
+    std::cout << name << ": dims=" << t.shape().size();
+    for (auto s : t.shape()) {
+      std::cout << " " << s;
+    }
+    std::cout << std::endl << std::endl;
+  };
+
+  auto xr = xx11 + xx_sx_s1 * x_r.flatten();
+  auto xw = xx12 + xx_sx_s2 * x_w.flatten();
+  auto xk = xx13 + xx_sx_s3 * x_k.flatten();
+  auto xv = xx14 + xx_sx_s4 * x_v.flatten();
+  auto xa = xx15 + xx_sx_s5 * x_a.flatten();
+  auto xg = xx16 + xx_sx_s6 * x_g.flatten();
+
+  auto [xv_1, xv_2] = split2(xv);
+
+  auto H = r_k.size(0);
+  auto S = r_k.size(1);
+
+  auto r = matmul(xr, rw).flatten();
+  auto k = matmul(xk, kw).flatten();
+  auto v = matmul(xv_1, vw).flatten();
+
+  auto w = exp(sigmoid(w0 + matmul(tanh(matmul(xw, w1)), w2)), -0.606531f).view({H, 1, S});
+  auto a = sigmoid(a0 + matmul(matmul(xa, a1), a2)).flatten();
+  auto g = matmul(sigmoid(matmul(xg, g1)), g2);
+
+  auto [k_1, k_2] = split2(k);
+  auto [a_1, a_2] = split2(a);
+  auto kk = l2norm((k_2 * k_k).view({H, 1, S})).view({H*S});
+  auto k_final = k_1 * (1.0f + (-1.0f + a_2) * k_a.flatten());
+
+  Tensor v_final = Tensor::Empty({H, S}, DType::kFloat32, Device::kNCNNMeta);
+  Tensor v_first_out = Tensor::Empty({H, S}, DType::kFloat32, Device::kNCNNMeta);
+  if (layer_id == 0) {
+    auto [v_out_1, v_out_2] = split2(v);
+    v_final = v_out_1;
+    v_first_out = v_out_2;
+  } else {
+    auto [v_1, v_2] = split2(v);
+    auto [v_first_in, v_first_1] = split2(v_first);
+    v_final = v_1 + (v_first_in - v_2) * sigmoid(v0 + matmul(matmul(xv_2, v1), v2));
+    v_first_out = v_first_1;
+  }
+
+  auto [k_final_1, k_final_2] = split2(k_final);
+  auto [v_final_1, v_final_2] = split2(v_final);
+  auto [kk_1, kk_2] = split2(kk);
+  auto vk = matmul(v_final_1.view({H, S, 1}), k_final_1.view({H, 1, S}));
+  auto ab = matmul((-1.0f * kk_1).view({H, S, 1}), (kk_2 * a_1).view({H, 1, S}));
+  auto [s_s1, s_s2] = split2(s);
+  auto s_res = s_s1 * w + vk + matmul(s_s2, ab);
+  auto [s_res_1, s_out] = split2(s_res);
+  auto [r_1, r_2] = split2(r);
+  auto out = matmul(r_1.view({H, 1, S}), s_res_1);
+
+  out = out.flatten();
+  // NOTE: ncnn groupnorm is different from pytorch groupnorm, so we use 1d
+  // input here
+  out = groupnorm(out, static_cast<int>(H), lx_w, lx_b, 64e-5f).flatten();
+
+  out = out + (sum((r_2 * k_final_2 * r_k.flatten()).view({H, S})) * v_final_2.view({H, S})).flatten();
+  out = out * g;
+  out = matmul(out, ow);
+
+  return {x_s2 + out, xx_out, s_out, v_first_out};
+}
+
+KernelRegister att_v7_reg("att_one_v7", Device::kNCNNMeta, att_one_v7);
+
 std::tuple<Tensor, Tensor> ffn(const Tensor &x, const Tensor &sx,
                                const Tensor &ln_w, const Tensor &ln_b,
                                const Tensor &k_mix, const Tensor &r_mix,
@@ -1201,10 +1348,29 @@ std::tuple<Tensor, Tensor> ffn_v6(const Tensor &x, const Tensor &sx,
 
 KernelRegister ffn_v6_reg("ffn_v6", Device::kNCNNMeta, ffn_v6);
 
+std::tuple<Tensor, Tensor> ffn_v7(const Tensor &x, const Tensor &sx,
+                               const Tensor &ln_w, const Tensor &ln_b,
+                               const Tensor &k_mix,
+                               const Tensor &kw, const Tensor &vw) {
+  auto [x_s1, x_s2] = split2(x);
+  auto xx = layernorm(x_s1, ln_w, ln_b);
+  auto [xx_s1, xx_s2, xx_s3] = split3(xx);
+  auto xx_sx = sx - xx_s2;
+  auto kx = xx_s1 + xx_sx * k_mix.flatten();
+
+  auto vx = relu(matmul(kx, kw));
+  vx = vx * vx;
+  auto out = matmul(vx, vw);
+  return {x_s2 + out, xx_s3};
+}
+
+KernelRegister ffn_v7_reg("ffn_v7", Device::kNCNNMeta, ffn_v7);
+
 KernelRegister allocator_reg("allocator", Device::kNCNNMeta, null_allocator);
 
 KernelRegister layernorm_reg("layernorm", Device::kNCNNMeta, layernorm);
 KernelRegister groupnorm_reg("groupnorm", Device::kNCNNMeta, groupnorm);
+KernelRegister l2norm_reg("l2norm", Device::kNCNNMeta, l2norm);
 KernelRegister matmul_reg("matmul", Device::kNCNNMeta, matmul);
 KernelRegister add_reg("add", Device::kNCNNMeta, add);
 KernelRegister sub_reg("sub", Device::kNCNNMeta, sub);
@@ -1212,9 +1378,12 @@ KernelRegister mul_reg("mul", Device::kNCNNMeta, mul);
 KernelRegister div_reg("div", Device::kNCNNMeta, div);
 KernelRegister maximum_reg("maximum", Device::kNCNNMeta, maximum);
 KernelRegister rsub_reg("rsub_scalar", Device::kNCNNMeta, rsub_scalar);
+KernelRegister add_scalar_reg("add_scalar", Device::kNCNNMeta, add_scalar);
+KernelRegister mul_scalar_reg("mul_scalar", Device::kNCNNMeta, mul_scalar);
 KernelRegister exp_reg("exp", Device::kNCNNMeta, exp);
 KernelRegister relu_reg("relu", Device::kNCNNMeta, relu);
 KernelRegister tanh_reg("tanh", Device::kNCNNMeta, tanh);
+KernelRegister sum_reg("sum", Device::kNCNNMeta, sum);
 KernelRegister sigmoid_reg("sigmoid", Device::kNCNNMeta, sigmoid);
 KernelRegister reshape_reg("reshape", Device::kNCNNMeta, reshape);
 KernelRegister mark_as_output_reg("mark_as_output", Device::kNCNNMeta,

@@ -91,6 +91,26 @@ att_one_v6(const Tensor &x, const Tensor &sx, const Tensor &s,
              vw, rw, gw, ow);
 }
 
+inline std::tuple<Tensor, Tensor, Tensor, Tensor>
+att_one_v7(const Tensor &x, const Tensor &sx, const Tensor &s,
+            Tensor &v_first, const int layer_id,
+            const Tensor &ln_w, const Tensor &ln_b, const Tensor &lx_w,
+            const Tensor &lx_b, const Tensor &x_r, const Tensor &x_w,
+            const Tensor &x_k, const Tensor &x_v, const Tensor &x_a, const Tensor &x_g, 
+            const Tensor &a0, const Tensor &a1, const Tensor &a2,
+            const Tensor &v0, const Tensor &v1, const Tensor &v2,
+            const Tensor &w0, const Tensor &w1, const Tensor &w2,
+            const Tensor &g1, const Tensor &g2, const Tensor &k_k, 
+            const Tensor &k_a, const Tensor &r_k,
+            const Tensor &kw, const Tensor &vw, const Tensor &rw,
+            const Tensor &ow) {
+  auto tmp = KernelRegistry::Instance().Get<decltype(att_one_v7) *>(
+      "att_one_v7", x.device());
+  return tmp(x, sx, s, v_first, layer_id, ln_w, ln_b, lx_w, lx_b, x_r, x_w, x_k, x_v, x_a, x_g, 
+             a0, a1, a2, v0, v1, v2, w0, w1, w2, g1, g2, k_k, k_a, r_k,
+             kw, vw, rw, ow);
+}
+
 //         def cuda_ffn_one_fp16(self, x, sx, ln_w, ln_b, k_mix, r_mix, kw, vw,
 //         rw, kmx, krx, kmy, kry, vmx, vrx, vmy, vry, rmx, rrx, rmy, rry):
 inline std::tuple<Tensor, Tensor> ffn(const Tensor &x, const Tensor &sx,
@@ -108,8 +128,17 @@ inline std::tuple<Tensor, Tensor> ffn_v6(const Tensor &x, const Tensor &sx,
                                       const Tensor &kw, const Tensor &vw,
                                       const Tensor &rw) {
   auto tmp =
-      KernelRegistry::Instance().Get<decltype(ffn) *>("ffn_v6", x.device());
+      KernelRegistry::Instance().Get<decltype(ffn_v6) *>("ffn_v6", x.device());
   return tmp(x, sx, ln_w, ln_b, k_mix, r_mix, kw, vw, rw);
+}
+
+inline std::tuple<Tensor, Tensor> ffn_v7(const Tensor &x, const Tensor &sx,
+                                      const Tensor &ln_w, const Tensor &ln_b,
+                                      const Tensor &k_mix,
+                                      const Tensor &kw, const Tensor &vw) {
+  auto tmp =
+      KernelRegistry::Instance().Get<decltype(ffn_v7) *>("ffn_v7", x.device());
+  return tmp(x, sx, ln_w, ln_b, k_mix, kw, vw);
 }
 
 inline std::tuple<Tensor, Tensor>
@@ -167,6 +196,11 @@ inline Tensor add(const Tensor &x, const Tensor &y) {
       "add", default_dispatch_device().value_or(x.device()))(x, y);
 }
 
+inline Tensor add(float x, const Tensor &y) {
+  return KernelRegistry::Instance().Get<Tensor (*)(float, const Tensor &)>(
+      "add_scalar", default_dispatch_device().value_or(y.device()))(x, y);
+}
+
 inline Tensor sub(float x, const Tensor &y) {
   return KernelRegistry::Instance().Get<Tensor (*)(float, const Tensor &)>(
       "rsub_scalar", default_dispatch_device().value_or(y.device()))(x, y);
@@ -180,6 +214,11 @@ inline Tensor sub(const Tensor &x, const Tensor &y) {
 inline Tensor mul(const Tensor &x, const Tensor &y) {
   return KernelRegistry::Instance().Get<decltype(mul) *>(
       "mul", default_dispatch_device().value_or(x.device()))(x, y);
+}
+
+inline Tensor mul(float x, const Tensor &y) {
+  return KernelRegistry::Instance().Get<Tensor (*)(float, const Tensor &)>(
+      "mul_scalar", default_dispatch_device().value_or(y.device()))(x, y);
 }
 
 inline Tensor div(const Tensor &x, const Tensor &y) {
