@@ -249,11 +249,11 @@ jobs:
         name: ${{ env.PACKAGENAME }}
         path: ${{ env.PACKAGENAME }}.zip
 
-  ubuntu-2204:
+  ubuntu-x64:
     needs: [setup]
     runs-on: ubuntu-22.04
     env:
-      PACKAGENAME: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-ubuntu-2204
+      PACKAGENAME: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-linux-x64
     steps:
     - uses: actions/checkout@v4
     - name: Install Ninja
@@ -262,7 +262,35 @@ jobs:
     - name: build
       run: |
         mkdir build && cd build
-        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_BUILD_SHARED_LIB=ON -GNinja ..
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_ENABLE_WEBRWKV=ON -DFR_BUILD_SHARED_LIB=ON -GNinja ..
+        cmake --build .
+    - name: package
+      run: |
+        rm -rf ${{ env.PACKAGENAME }}
+        mkdir -p ${{ env.PACKAGENAME }}
+        cp -a build/*.so ${{ env.PACKAGENAME }}
+        rm -f ${{ env.PACKAGENAME }}.zip
+        zip -9 -y -r ${{ env.PACKAGENAME }}.zip ${{ env.PACKAGENAME }}
+    - name: upload-zip
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.PACKAGENAME }}
+        path: ${{ env.PACKAGENAME }}.zip
+
+  ubuntu-aarch64:
+    needs: [setup]
+    runs-on: ubuntu-22.04-arm
+    env:
+      PACKAGENAME: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-linux-aarch64
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Ninja
+      run: |
+        sudo apt-get install ninja-build
+    - name: build
+      run: |
+        mkdir build && cd build
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=OFF -DFR_ENABLE_WEBRWKV=ON -DFR_BUILD_SHARED_LIB=ON -GNinja ..
         cmake --build .
     - name: package
       run: |
@@ -315,7 +343,7 @@ jobs:
         path: ${{ env.PACKAGENAME }}.zip
 
   build-and-test:
-    needs: [setup, ubuntu-2204, aarch64-android-ndk-28, windows-vs2022, ios]
+    needs: [setup, ubuntu-x64, ubuntu-aarch64, aarch64-android-ndk-28, windows-vs2022, ios]
     # Use ubuntu 20.04 to build with enough old glibc, so that products can be distributed to more Linux distributions
     runs-on: ubuntu-20.04
 
@@ -457,7 +485,12 @@ jobs:
     - name: Download artifact from job ubuntu-2204
       uses: actions/download-artifact@v4
       with:
-        name: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-ubuntu-2204
+        name: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-linux-x64
+    
+    - name: Download artifact from job ubuntu-aarch64
+      uses: actions/download-artifact@v4
+      with:
+        name: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-linux-aarch64
     
     - name: Download artifact from job aarch64-android-ndk-28
       uses: actions/download-artifact@v4
@@ -492,7 +525,8 @@ jobs:
           build-android-aar/chat-android
           build-android-aar/abc_music-android
           build-android-aar/midi_music-android
-          libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-ubuntu-2204.zip
+          libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-linux-x64.zip
+          libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-linux-aarch64.zip
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28.zip
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-windows-vs2022.zip
           libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios.zip
@@ -509,7 +543,8 @@ jobs:
           build-android-aar/chat-android
           build-android-aar/abc_music-android
           build-android-aar/midi_music-android
-          libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-ubuntu-2204.zip
+          libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-linux-x64.zip
+          libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-linux-aarch64.zip
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28.zip
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-windows-vs2022.zip
           libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios.zip
