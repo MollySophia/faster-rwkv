@@ -485,7 +485,12 @@ jobs:
     - name: Download artifact from job ubuntu-2204
       uses: actions/download-artifact@v4
       with:
-        name: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-ubuntu-2204
+        name: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-linux-x64
+    
+    - name: Download artifact from job ubuntu-aarch64
+      uses: actions/download-artifact@v4
+      with:
+        name: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-linux-aarch64
     
     - name: Download artifact from job aarch64-android-ndk-28
       uses: actions/download-artifact@v4
