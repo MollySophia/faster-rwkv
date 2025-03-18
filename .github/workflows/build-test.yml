@@ -290,7 +290,7 @@ jobs:
     - name: build
       run: |
         mkdir build && cd build
-        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=OFF -DFR_ENABLE_WEBRWKV=ON -DFR_BUILD_SHARED_LIB=ON -GNinja ..
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=OFF -DFR_ENABLE_WEBRWKV=ON -DFR_ENABLE_RWKVCPP=ON -DGGML_NATIVE=OFF -DGGML_CPU_ARM_ARCH="armv8.2-a" -DFR_BUILD_SHARED_LIB=ON -GNinja ..
         cmake --build .
     - name: package
       run: |

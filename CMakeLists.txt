@@ -26,7 +26,7 @@ option(FR_ENABLE_NCNN "Enable NCNN" ON)
 option(FR_ENABLE_QNN "Enable Qualcomm QNN backend" OFF)
 option(FR_ENABLE_MTK "Enable MediaTek NeuronPilot backend" OFF)
 option(FR_ENABLE_WEBRWKV "Enable WebRWKV backend" OFF)
-option(FR_ENABLE_RWKVCPP "Enable rwkv.cpp backend" ON)
+option(FR_ENABLE_RWKVCPP "Enable rwkv.cpp backend" OFF)
 option(FR_BUILD_PYTHON "" OFF)
 if (DEFINED ANDROID_NDK)
     option(FR_BUILD_JNI "" ON)
@@ -112,7 +112,7 @@ if (FR_ENABLE_NCNN)
     )
 endif()
 
-if (FR_ENABLE_RWKVCPP AND ANDROID)
+if (FR_ENABLE_RWKVCPP)
     set(rwkv_cpp_srcs
         kernels/rwkv.cpp/init_model.cpp
         kernels/rwkv.cpp/model_forward.cpp
@@ -248,15 +248,27 @@ if (FR_ENABLE_MTK)
     target_link_libraries(faster_rwkv_internal PUBLIC rwkv_mtk)
 endif()
 
-if (FR_ENABLE_RWKVCPP AND ANDROID)
+if (FR_ENABLE_RWKVCPP)
     find_package(OpenMP)
     if (OPENMP_FOUND)
         set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
         set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     endif()
-    target_compile_definitions(faster_rwkv_internal PUBLIC FR_ENABLE_RWKVCPP)
-    target_link_directories(faster_rwkv_internal PUBLIC kernels/rwkv.cpp/obj/aarch64-android/)
-    target_link_libraries(faster_rwkv_internal PUBLIC rwkv ggml ggml-base ggml-cpu)
+    if (ANDROID)
+        target_compile_definitions(faster_rwkv_internal PUBLIC FR_ENABLE_RWKVCPP)
+        target_link_directories(faster_rwkv_internal PUBLIC kernels/rwkv.cpp/obj/aarch64-android/)
+        target_link_libraries(faster_rwkv_internal PUBLIC rwkv ggml ggml-base ggml-cpu)
+    else()
+        FetchContent_Declare(
+            rwkv_cpp
+            GIT_REPOSITORY https://github.com/RWKV/RWKV.cpp
+            GIT_TAG master
+        )
+        option(RWKV_STANDALONE "" ON)
+        FetchContent_MakeAvailable(rwkv_cpp)
+        target_compile_definitions(faster_rwkv_internal PUBLIC FR_ENABLE_RWKVCPP)
+        target_link_libraries(faster_rwkv_internal PUBLIC $<TARGET_OBJECTS:rwkv> $<TARGET_OBJECTS:ggml> $<TARGET_OBJECTS:ggml-base> $<TARGET_OBJECTS:ggml-cpu>)
+    endif()
 endif()
 
 if (DEFINED ANDROID_NDK)
