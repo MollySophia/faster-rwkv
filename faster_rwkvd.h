@@ -88,6 +88,8 @@ void rwkv_model_clear_states(rwkv_model_t model_handle);
 
 void rwkv_qualcomm_save_context(rwkv_model_t model_handle, const char *path);
 
+char* rwkv_get_soc_name();
+
 #ifdef __cplusplus
 }
 #endif

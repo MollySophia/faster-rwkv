@@ -6,6 +6,7 @@
 #include "tokenizer.h"
 #include <cstring>
 #include <fstream>
+#include "soc_detect.h"
 
 #ifdef FR_ENABLE_WEBRWKV
 #include <time.h>
@@ -230,6 +231,12 @@ void rwkv_model_clear_states(rwkv_model_t model_handle) {
     last_out.clear();
     occurences.clear();
   }
+}
+
+char* rwkv_get_soc_name() {
+  soc_detect detect;
+  detect.detect_platform();
+  return (char*)detect.get_soc_name();
 }
 
 #ifdef __cplusplus

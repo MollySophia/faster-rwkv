@@ -34,7 +34,7 @@ GraphBackendForwardInternal(const Model *model, int id,
 
   if (extra.output_shape.empty()) {
     std::vector<size_t> output_shape;
-    QnnRwkvGetOutputShape(extra.backend, QnnRwkvGetOutputNum(extra.backend) - 1, output_shape);
+    QnnRwkvGetVocabSize(extra.backend, output_shape);
     for (auto &s : output_shape) {
       extra.output_shape.push_back(s);
     }
@@ -42,7 +42,7 @@ GraphBackendForwardInternal(const Model *model, int id,
 
   QnnTensorWrapper output(rwkv::Tensor::Empty(extra.output_shape, DType::kFloat32, Device::kCPU));
 
-  QnnRwkvGetOutput(extra.backend, QnnRwkvGetOutputNum(extra.backend) - 1, output.tensor.data_ptr<float>(), output.tensor.numel());
+  QnnRwkvCopyLogitsOutput(extra.backend, output.tensor.data_ptr<float>(), output.tensor.numel());
 
   return {output, states};
 }

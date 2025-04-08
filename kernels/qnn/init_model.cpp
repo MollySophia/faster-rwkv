@@ -194,29 +194,7 @@ void init_model(Model *model, Device device, const std::string &_path,
 #endif
 
   if (context_binary) {
-#ifdef FR_ENABLE_ANDROID_ASSET
-    if (android_asset) {
-      auto *mgr = std::any_cast<AAssetManager *>(extra);
-      asset = AAssetManager_open(mgr, model_path.c_str(), AASSET_MODE_BUFFER);
-      emb_asset = AAssetManager_open(mgr, emb_path.c_str(), AASSET_MODE_BUFFER);
-      if (asset) {
-        uint8_t *bin_data = const_cast<uint8_t *>(static_cast<const uint8_t *>(AAsset_getBuffer(asset)));
-        uint64_t bin_size = AAsset_getLength64(asset);
-        uint8_t *emb_data = nullptr;
-        uint64_t emb_size = 0;
-        if (emb_asset) {
-          emb_data = const_cast<uint8_t *>(static_cast<const uint8_t *>(AAsset_getBuffer(emb_asset)));
-          emb_size = AAsset_getLength64(emb_asset);
-        }
-        if (StatusCode::SUCCESS != QnnRwkvBackendCreateWithContextBuffer(&model_extra.backend, &model_extra.modelHandle,
-                         model_path, "libQnnHtp.so", "libQnnSystem.so", bin_data, bin_size, emb_data, emb_size, model_extra.vocab_size)) {
-          RV_UNIMPLEMENTED() << "QnnRwkvBackendCreateWithContextBuffer failed";
-        }
-      }
-    } else {
-#else
     {
-#endif
 
 #ifdef _WIN32
       if (StatusCode::SUCCESS != QnnRwkvBackendCreateWithContext(&model_extra.backend, &model_extra.modelHandle, model_path, "QnnHtp.dll", "QnnSystem.dll")) {
@@ -264,15 +242,7 @@ void init_model(Model *model, Device device, const std::string &_path,
       }
 #else
       std::string backend_lib;
-      // if (model_extra.backend_str == "HTP") {
       backend_lib = "libQnnHtp.so";
-      // } else if (model_extra.backend_str == "GPU") {
-      //   backend_lib = "libQnnGpu.so";
-      // } else if (model_extra.backend_str == "CPU") {
-      //   backend_lib = "libQnnCpu.so";
-      // } else {
-      //   RV_UNIMPLEMENTED() << "unsupported backend: " << model_extra.backend_str;
-      // }
       if (!library_path.empty()) {
         backend_lib = library_path + "/" + backend_lib;
       }
@@ -281,23 +251,6 @@ void init_model(Model *model, Device device, const std::string &_path,
       __android_log_print(ANDROID_LOG_INFO, TAG, "Trying qualcomm %s backend", backend_lib.c_str());
 #endif
       if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib)) {
-//         if (model_extra.backend_str == "HTP") {
-//           backend_lib = library_path + "/libQnnGpu.so";
-//           model_extra.backend_str = "GPU";
-// #ifdef FR_ENABLE_ANDROID_ASSET
-//           __android_log_print(ANDROID_LOG_INFO, TAG, "Trying qualcomm %s backend", backend_lib.c_str());
-// #endif
-//           if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib)) {
-//             backend_lib = library_path + "/libQnnCpu.so";
-//             model_extra.backend_str = "CPU";
-// #ifdef FR_ENABLE_ANDROID_ASSET
-//           __android_log_print(ANDROID_LOG_INFO, TAG, "Trying qualcomm %s backend", backend_lib.c_str());
-// #endif
-//             if (StatusCode::SUCCESS != QnnRwkvBackendCreate(&model_extra.backend, &model_extra.modelHandle, model_path, backend_lib)) {
-//               RV_UNIMPLEMENTED() << "QnnRwkvBackendCreate failed";
-//             }
-//           }
-        // } else
           RV_UNIMPLEMENTED() << "QnnRwkvBackendCreate failed";
       }
 #endif
