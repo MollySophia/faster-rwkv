@@ -345,8 +345,8 @@ jobs:
   build-and-test:
     # needs: [setup, ubuntu-x64, ubuntu-aarch64, aarch64-android-ndk-28, windows-vs2022, ios]
     needs: [setup, ubuntu-x64, ubuntu-aarch64, aarch64-android-ndk-28, ios]
-    # Use ubuntu 20.04 to build with enough old glibc, so that products can be distributed to more Linux distributions
-    runs-on: ubuntu-20.04
+    # Use ubuntu 22.04 to build with enough old glibc, so that products can be distributed to more Linux distributions
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v4
@@ -431,7 +431,6 @@ jobs:
 
     - name: Build Python wheel
       run: |
-        # Ubuntu 20.04's pip is old
         python3 -m pip install -U pip
         python3 -m pip wheel .
         python3 -m pip install fasterrwkv*.whl
