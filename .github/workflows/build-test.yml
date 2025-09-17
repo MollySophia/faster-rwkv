@@ -189,7 +189,7 @@ jobs:
 
   macos-x64:
     needs: [setup]
-    runs-on: macos-15-large
+    runs-on: macos-15
     env:
       PACKAGENAME: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-macos-x64
     steps:
