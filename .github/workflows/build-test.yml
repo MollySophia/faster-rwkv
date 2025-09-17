@@ -187,68 +187,6 @@ jobs:
         name: ${{ env.PACKAGENAME }}
         path: ${{ env.PACKAGENAME }}.zip
 
-  macos-x64:
-    needs: [setup]
-    runs-on: macos-15
-    env:
-      PACKAGENAME: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-macos-x64
-    steps:
-    - uses: actions/checkout@v4
-    - name: build
-      run: |
-        mkdir build && cd build
-        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_ENABLE_WEBRWKV=ON -DFR_BUILD_SHARED_LIB=ON -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-        cmake --build . -j8
-    - name: package
-      run: |
-        rm -rf ${{ env.PACKAGENAME }}
-        mkdir -p ${{ env.PACKAGENAME }}
-        cp -a build/*.dylib ${{ env.PACKAGENAME }}
-        rm -f ${{ env.PACKAGENAME }}.zip
-        zip -9 -y -r ${{ env.PACKAGENAME }}.zip ${{ env.PACKAGENAME }}
-    - name: upload-zip
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.PACKAGENAME }}
-        path: ${{ env.PACKAGENAME }}.zip
-  
-  macos-universal:
-    needs: [setup, macos-x64, macos-aarch64]
-    runs-on: macos-14
-    env:
-      PACKAGENAME: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-macos-universal
-    steps:
-    - name: download-macos-x64
-      uses: actions/download-artifact@v4
-      with:
-        name: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-macos-x64
-    - name: download-macos-aarch64
-      uses: actions/download-artifact@v4
-      with:
-        name: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-macos-aarch64
-    - name: create-universal
-      run: |
-        rm -rf build-universal build-x64 build-arm64
-        mkdir build-x64 && cd build-x64
-        unzip ../libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-macos-x64.zip
-        cd ..
-        mkdir build-arm64 && cd build-arm64
-        unzip ../libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-macos-aarch64.zip
-        cd ..
-        mkdir build-universal && cd build-universal
-        lipo -create ../build-x64/libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-macos-x64/libfaster_rwkvd.dylib ../build-arm64/libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-macos-aarch64/libfaster_rwkvd.dylib -output libfaster_rwkvd.dylib
-    - name: package
-      run: |
-        rm -f ${{ env.PACKAGENAME }}.zip
-        pushd build-universal
-        zip -9 -y -r ../${{ env.PACKAGENAME }}.zip libfaster_rwkvd.dylib
-        popd
-    - name: upload-zip
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.PACKAGENAME }}
-        path: ${{ env.PACKAGENAME }}.zip
-
   ubuntu-x64:
     needs: [setup]
     runs-on: ubuntu-22.04
@@ -506,10 +444,10 @@ jobs:
       with:
         name: libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios
 
-    - name: Download artifact from job macos-universal
+    - name: Download artifact from job macos-aarch64
       uses: actions/download-artifact@v4
       with:
-        name: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-macos-universal
+        name: libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-macos-aarch64
 
     - uses: "marvinpinto/action-automatic-releases@latest"
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
@@ -529,7 +467,7 @@ jobs:
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28.zip
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-windows-vs2022.zip
           libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios.zip
-          libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-macos-universal.zip
+          libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-macos-aarch64.zip
 
     - uses: "marvinpinto/action-automatic-releases@latest"
       if: ${{ github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') }}
@@ -547,4 +485,4 @@ jobs:
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-aarch64-android-ndk-28.zip
           libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-windows-vs2022.zip
           libfaster-rwkv-static-${{ needs.setup.outputs.VERSION }}-ios.zip
-          libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-macos-universal.zip
+          libfaster-rwkvd-${{ needs.setup.outputs.VERSION }}-macos-aarch64.zip
