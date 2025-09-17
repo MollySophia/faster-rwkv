@@ -341,14 +341,14 @@ if (FR_BUILD_SHARED_LIB)
             FetchContent_Declare(
                 Corrosion
                 GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
-                GIT_TAG v0.5
+                GIT_TAG v0.5.2
             )
             FetchContent_MakeAvailable(Corrosion)
 
             FetchContent_Declare(
                 web_rwkv_ffi
                 GIT_REPOSITORY https://github.com/cryscan/web-rwkv-ffi.git
-                GIT_TAG main
+                GIT_TAG 680160c30ce728bed54e5330b05fff65292c6ae1
             )
             FetchContent_MakeAvailable(web_rwkv_ffi)
 
