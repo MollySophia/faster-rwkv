@@ -30,17 +30,17 @@ jobs:
     - name: build-x64
       run: |
         mkdir build-x64 && cd build-x64
-        cmake -A x64 -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_ENABLE_WEBRWKV=ON -DFR_BUILD_SHARED_LIB=ON ..
+        cmake -A x64 -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_ENABLE_WEBRWKV=ON -DFR_BUILD_SHARED_LIB=ON -DCMAKE_POLICY_VERSION_MINIMUM="3.5" ..
         cmake --build . --config ${{env.BUILD_TYPE}} -j4
     - name: build-x86
       run: |
         mkdir build-x86 && cd build-x86
-        cmake -T v142,host=x64 -A Win32 -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_BUILD_SHARED_LIB=ON ..
+        cmake -T v142,host=x64 -A Win32 -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_BUILD_SHARED_LIB=ON -DCMAKE_POLICY_VERSION_MINIMUM="3.5" ..
         cmake --build . --config ${{env.BUILD_TYPE}} -j4
     - name: build-arm64
       run: |
         mkdir build-arm64 && cd build-arm64
-        cmake -T v142,host=x64 -A arm64 -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_ENABLE_QNN=ON -DFR_BUILD_SHARED_LIB=ON ..
+        cmake -T v142,host=x64 -A arm64 -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFR_ENABLE_NCNN=ON -DFR_ENABLE_QNN=ON -DFR_BUILD_SHARED_LIB=ON -DCMAKE_POLICY_VERSION_MINIMUM="3.5" ..
         cmake --build . --config ${{env.BUILD_TYPE}} -j4
     - name: package
       run: |
