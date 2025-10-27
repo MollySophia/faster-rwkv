@@ -27,6 +27,7 @@ snapdragon_soc_id snapdragon_soc_ids[] = {
     {618, "SM8750", "8 Elite", "V79"},
     {639, "SM8750P", "8 Elite", "V79"},
     {643, "SM7675", "7+ Gen 3", "V73"},
+    {660, "SM8850", "8 Elite Gen5", "V81"},
     // TODO: add more
 };
 
